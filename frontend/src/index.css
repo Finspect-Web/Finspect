@@ -1,0 +1,45 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply h-full;
+    font-size: 13px;
+  }
+
+  body {
+    @apply m-0 h-full bg-slate-50 text-slate-800 antialiased dark:bg-slate-950 dark:text-slate-100;
+    font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    letter-spacing: 0.005em;
+  }
+
+  #root {
+    @apply h-full;
+  }
+
+  * {
+    font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  }
+
+  input,
+  select,
+  textarea {
+    @apply rounded-xl border border-slate-300 bg-slate-100 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 outline-none ring-brand-500/40 focus:ring-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200;
+  }
+
+  button {
+    @apply text-sm;
+  }
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  @apply rounded-full bg-slate-300 dark:bg-slate-700;
+}
