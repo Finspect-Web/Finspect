@@ -2,7 +2,7 @@ const prisma = require("../prisma/client");
 const AppError = require("../utils/appError");
 const ActivityAction = require("../constants/activityActions");
 const { isDummyMode } = require("../utils/mode");
-const { credentials, clients, createId } = require("../utils/dummyStore");
+const { credentials, clients, tasks, createId } = require("../utils/dummyStore");
 const { encryptText, decryptText } = require("../utils/crypto");
 const { logActivity } = require("./activity.service");
 
@@ -70,10 +70,39 @@ async function createCredential(payload, actorId) {
   };
 }
 
-async function getCredentialsByClient(clientId) {
+async function assertCredentialReadAccess(clientId, actor) {
+  if (actor.role === "ADMIN") {
+    return;
+  }
+
+  if (isDummyMode()) {
+    const hasAssignedTask = tasks.some((item) => item.clientId === clientId && item.assignedToId === actor.id);
+    if (!hasAssignedTask) {
+      throw new AppError("You can view credentials only for clients assigned to you through tasks.", 403);
+    }
+    return;
+  }
+
+  const hasAssignedTask = await prisma.task.findFirst({
+    where: {
+      clientId,
+      assignedToId: actor.id
+    },
+    select: {
+      id: true
+    }
+  });
+
+  if (!hasAssignedTask) {
+    throw new AppError("You can view credentials only for clients assigned to you through tasks.", 403);
+  }
+}
+
+async function getCredentialsByClient(clientId, actor) {
   if (isDummyMode()) {
     const client = clients.find((item) => item.id === clientId);
     if (!client) throw new AppError("Client not found.", 404);
+    await assertCredentialReadAccess(clientId, actor);
 
     return credentials
       .filter((item) => item.clientId === clientId)
@@ -92,8 +121,9 @@ async function getCredentialsByClient(clientId) {
   if (!client) {
     throw new AppError("Client not found.", 404);
   }
+  await assertCredentialReadAccess(clientId, actor);
 
-  const credentials = await prisma.credential.findMany({
+  const dbCredentials = await prisma.credential.findMany({
     where: { clientId },
     include: credentialInclude,
     orderBy: {
@@ -101,7 +131,7 @@ async function getCredentialsByClient(clientId) {
     }
   });
 
-  return credentials.map((credential) => ({
+  return dbCredentials.map((credential) => ({
     ...credential,
     password: decryptText(credential.password)
   }));

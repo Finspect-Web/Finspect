@@ -7,7 +7,6 @@ const {
   credentials,
   invoices,
   payments,
-  users,
   createId,
   findUserById
 } = require("../utils/dummyStore");
@@ -22,6 +21,14 @@ const clientInclude = {
       email: true
     }
   },
+  assignedTo: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true
+    }
+  },
   _count: {
     select: {
       tasks: true,
@@ -31,7 +38,7 @@ const clientInclude = {
 };
 
 async function createClient(payload, actorId) {
-  const { name, email, phone, companyName, gstin, pan, address, notes } = payload;
+  const { name, email, phone, companyName, gstin, pan, address, notes, assignedToId } = payload;
 
   if (!name || !email || !phone || !companyName || !address) {
     throw new AppError("name, email, phone, companyName and address are required.", 400);
@@ -41,6 +48,13 @@ async function createClient(payload, actorId) {
     const createdBy = findUserById(actorId);
     if (!createdBy) {
       throw new AppError("Created-by user not found.", 404);
+    }
+    const assignedTo = assignedToId ? findUserById(assignedToId) : null;
+    if (assignedToId && !assignedTo) {
+      throw new AppError("Assigned user not found.", 404);
+    }
+    if (assignedTo && assignedTo.role !== "STAFF") {
+      throw new AppError("Assigned user must have STAFF role.", 400);
     }
 
     const client = {
@@ -54,6 +68,7 @@ async function createClient(payload, actorId) {
       address,
       notes: notes || null,
       createdById: actorId,
+      assignedToId: assignedToId || null,
       createdAt: new Date()
     };
     clients.unshift(client);
@@ -66,11 +81,29 @@ async function createClient(payload, actorId) {
         name: createdBy.name,
         email: createdBy.email
       },
+      assignedTo: assignedTo
+        ? {
+            id: assignedTo.id,
+            name: assignedTo.name,
+            email: assignedTo.email,
+            role: assignedTo.role
+          }
+        : null,
       _count: {
         tasks: 0,
         credentials: 0
       }
     };
+  }
+
+  if (assignedToId) {
+    const assignedTo = await prisma.user.findUnique({ where: { id: assignedToId } });
+    if (!assignedTo) {
+      throw new AppError("Assigned user not found.", 404);
+    }
+    if (assignedTo.role !== "STAFF") {
+      throw new AppError("Assigned user must have STAFF role.", 400);
+    }
   }
 
   const client = await prisma.client.create({
@@ -83,7 +116,8 @@ async function createClient(payload, actorId) {
       pan: pan || null,
       address,
       notes: notes || null,
-      createdById: actorId
+      createdById: actorId,
+      assignedToId: assignedToId || null
     },
     include: clientInclude
   });
@@ -99,6 +133,7 @@ async function getClients() {
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .map((client) => {
         const createdBy = findUserById(client.createdById);
+        const assignedTo = client.assignedToId ? findUserById(client.assignedToId) : null;
         return {
           ...client,
           createdBy: createdBy
@@ -106,6 +141,14 @@ async function getClients() {
                 id: createdBy.id,
                 name: createdBy.name,
                 email: createdBy.email
+              }
+            : null,
+          assignedTo: assignedTo
+            ? {
+                id: assignedTo.id,
+                name: assignedTo.name,
+                email: assignedTo.email,
+                role: assignedTo.role
               }
             : null,
           _count: {
@@ -132,6 +175,7 @@ async function getClientById(id) {
     }
 
     const createdBy = findUserById(client.createdById);
+    const assignedTo = client.assignedToId ? findUserById(client.assignedToId) : null;
     return {
       ...client,
       createdBy: createdBy
@@ -139,6 +183,14 @@ async function getClientById(id) {
             id: createdBy.id,
             name: createdBy.name,
             email: createdBy.email
+          }
+        : null,
+      assignedTo: assignedTo
+        ? {
+            id: assignedTo.id,
+            name: assignedTo.name,
+            email: assignedTo.email,
+            role: assignedTo.role
           }
         : null,
       _count: {
@@ -192,6 +244,22 @@ async function updateClient(id, payload, actorId) {
     }
 
     const existing = clients[clientIndex];
+    let nextAssignedToId = existing.assignedToId || null;
+    if (payload.assignedToId !== undefined) {
+      if (!payload.assignedToId) {
+        nextAssignedToId = null;
+      } else {
+        const assignedTo = findUserById(payload.assignedToId);
+        if (!assignedTo) {
+          throw new AppError("Assigned user not found.", 404);
+        }
+        if (assignedTo.role !== "STAFF") {
+          throw new AppError("Assigned user must have STAFF role.", 400);
+        }
+        nextAssignedToId = payload.assignedToId;
+      }
+    }
+
     const updated = {
       ...existing,
       name: payload.name ?? existing.name,
@@ -201,12 +269,14 @@ async function updateClient(id, payload, actorId) {
       gstin: payload.gstin !== undefined ? payload.gstin || null : existing.gstin,
       pan: payload.pan !== undefined ? payload.pan || null : existing.pan,
       address: payload.address ?? existing.address,
-      notes: payload.notes !== undefined ? payload.notes || null : existing.notes
+      notes: payload.notes !== undefined ? payload.notes || null : existing.notes,
+      assignedToId: nextAssignedToId
     };
     clients[clientIndex] = updated;
 
     await logActivity(ActivityAction.CLIENT_UPDATED, actorId, id);
     const createdBy = findUserById(updated.createdById);
+    const assignedTo = updated.assignedToId ? findUserById(updated.assignedToId) : null;
     return {
       ...updated,
       createdBy: createdBy
@@ -214,6 +284,14 @@ async function updateClient(id, payload, actorId) {
             id: createdBy.id,
             name: createdBy.name,
             email: createdBy.email
+          }
+        : null,
+      assignedTo: assignedTo
+        ? {
+            id: assignedTo.id,
+            name: assignedTo.name,
+            email: assignedTo.email,
+            role: assignedTo.role
           }
         : null,
       _count: {
@@ -228,6 +306,22 @@ async function updateClient(id, payload, actorId) {
     throw new AppError("Client not found.", 404);
   }
 
+  let nextAssignedToId = existing.assignedToId || null;
+  if (payload.assignedToId !== undefined) {
+    if (!payload.assignedToId) {
+      nextAssignedToId = null;
+    } else {
+      const assignedTo = await prisma.user.findUnique({ where: { id: payload.assignedToId } });
+      if (!assignedTo) {
+        throw new AppError("Assigned user not found.", 404);
+      }
+      if (assignedTo.role !== "STAFF") {
+        throw new AppError("Assigned user must have STAFF role.", 400);
+      }
+      nextAssignedToId = payload.assignedToId;
+    }
+  }
+
   const client = await prisma.client.update({
     where: { id },
     data: {
@@ -238,7 +332,8 @@ async function updateClient(id, payload, actorId) {
       gstin: payload.gstin !== undefined ? payload.gstin || null : existing.gstin,
       pan: payload.pan !== undefined ? payload.pan || null : existing.pan,
       address: payload.address ?? existing.address,
-      notes: payload.notes !== undefined ? payload.notes || null : existing.notes
+      notes: payload.notes !== undefined ? payload.notes || null : existing.notes,
+      assignedToId: nextAssignedToId
     },
     include: clientInclude
   });

@@ -7,13 +7,14 @@ const ActivityAction = require("../constants/activityActions");
 const { compliances, clients, users, createId, findUserById } = require("../utils/dummyStore");
 
 const Role = prismaTypes.Role || { ADMIN: "ADMIN", STAFF: "STAFF" };
-const ComplianceType = prismaTypes.ComplianceType || {
+const defaultComplianceTypes = {
   GST: "GST",
   TDS: "TDS",
   ROC: "ROC",
   INCOME_TAX: "INCOME_TAX",
   OTHER: "OTHER"
 };
+const ComplianceType = prismaTypes.ComplianceType || defaultComplianceTypes;
 const ComplianceStatus = prismaTypes.ComplianceStatus || {
   PENDING: "PENDING",
   IN_PROGRESS: "IN_PROGRESS",
@@ -30,6 +31,7 @@ const RecurrenceType = prismaTypes.RecurrenceType || {
 const ACTION_COMPLIANCE_CREATED = ActivityAction.COMPLIANCE_CREATED || "COMPLIANCE_CREATED";
 const ACTION_COMPLIANCE_UPDATED = ActivityAction.COMPLIANCE_UPDATED || "COMPLIANCE_UPDATED";
 const ACTION_COMPLIANCE_COMPLETED = ActivityAction.COMPLIANCE_COMPLETED || "COMPLIANCE_COMPLETED";
+const DEFAULT_COMPLIANCE_TYPES = Object.values(defaultComplianceTypes);
 
 const complianceInclude = {
   client: {
@@ -56,10 +58,49 @@ const complianceInclude = {
   }
 };
 
-function validateComplianceType(type) {
-  if (type !== undefined && !Object.values(ComplianceType).includes(type)) {
+function normalizeComplianceType(type) {
+  const value = String(type || "").trim();
+  if (!value) return value;
+
+  const normalized = value.toUpperCase().replace(/\s+/g, "_");
+  if (DEFAULT_COMPLIANCE_TYPES.includes(normalized)) {
+    return normalized;
+  }
+
+  return value;
+}
+
+async function getAllowedComplianceTypes() {
+  const allowed = new Set([...Object.values(ComplianceType), ...DEFAULT_COMPLIANCE_TYPES]);
+  if (isDummyMode()) return allowed;
+
+  const dbTypes = await prisma.complianceType.findMany({
+    select: { name: true }
+  });
+
+  for (const entry of dbTypes) {
+    const name = String(entry.name || "").trim();
+    if (!name) continue;
+    allowed.add(name);
+    const normalized = normalizeComplianceType(name);
+    if (normalized) {
+      allowed.add(normalized);
+    }
+  }
+
+  return allowed;
+}
+
+async function validateComplianceType(type) {
+  if (type === undefined) return type;
+
+  const normalizedType = normalizeComplianceType(type);
+  const allowedTypes = await getAllowedComplianceTypes();
+  if (!allowedTypes.has(normalizedType)) {
     throw new AppError("Invalid compliance type.", 400);
   }
+
+  return normalizedType;
 }
 
 function validateComplianceStatus(status) {
@@ -80,6 +121,45 @@ function parseDate(value, fieldName) {
     throw new AppError(`${fieldName} must be a valid date.`, 400);
   }
   return parsed;
+}
+
+function getNextDueDate(dueDate, recurrence) {
+  const baseDate = parseDate(dueDate, "dueDate");
+  const nextDate = new Date(baseDate);
+
+  if (recurrence === RecurrenceType.MONTHLY) {
+    nextDate.setUTCMonth(nextDate.getUTCMonth() + 1);
+    return nextDate;
+  }
+
+  if (recurrence === RecurrenceType.QUARTERLY) {
+    nextDate.setUTCMonth(nextDate.getUTCMonth() + 3);
+    return nextDate;
+  }
+
+  if (recurrence === RecurrenceType.YEARLY) {
+    nextDate.setUTCFullYear(nextDate.getUTCFullYear() + 1);
+    return nextDate;
+  }
+
+  return nextDate;
+}
+
+function applyRecurringCompletion(existing, data) {
+  const effectiveStatus = data.status;
+  if (effectiveStatus !== ComplianceStatus.COMPLETED || existing.status === ComplianceStatus.COMPLETED) {
+    return false;
+  }
+
+  const effectiveRecurrence = data.recurrence ?? existing.recurrence;
+  if (effectiveRecurrence === RecurrenceType.NONE) {
+    return true;
+  }
+
+  const baseDueDate = data.dueDate ?? existing.dueDate;
+  data.dueDate = getNextDueDate(baseDueDate, effectiveRecurrence);
+  data.status = ComplianceStatus.PENDING;
+  return true;
 }
 
 function hydrateDummyCompliance(item) {
@@ -121,7 +201,7 @@ async function createCompliance(payload, actorId) {
     throw new AppError("clientId, title, dueDate and assignedToId are required.", 400);
   }
 
-  validateComplianceType(type);
+  const normalizedType = await validateComplianceType(type);
   validateRecurrence(recurrence);
   const parsedDueDate = parseDate(dueDate, "dueDate");
 
@@ -139,7 +219,7 @@ async function createCompliance(payload, actorId) {
       clientId,
       title,
       description: description || null,
-      type,
+      type: normalizedType,
       dueDate: parsedDueDate,
       recurrence,
       status: ComplianceStatus.PENDING,
@@ -166,7 +246,7 @@ async function createCompliance(payload, actorId) {
       clientId,
       title,
       description: description || null,
-      type,
+      type: normalizedType,
       dueDate: parsedDueDate,
       recurrence,
       assignedToId,
@@ -240,8 +320,7 @@ async function updateCompliance(id, payload, actor) {
       if (payload.title !== undefined) data.title = payload.title;
       if (payload.description !== undefined) data.description = payload.description || null;
       if (payload.type !== undefined) {
-        validateComplianceType(payload.type);
-        data.type = payload.type;
+        data.type = await validateComplianceType(payload.type);
       }
       if (payload.dueDate !== undefined) data.dueDate = parseDate(payload.dueDate, "dueDate");
       if (payload.recurrence !== undefined) {
@@ -259,6 +338,8 @@ async function updateCompliance(id, payload, actor) {
       }
     }
 
+    const completionOccurred = applyRecurringCompletion(existing, data);
+
     if (Object.keys(data).length === 0) {
       throw new AppError("No valid fields were provided for update.", 400);
     }
@@ -270,11 +351,7 @@ async function updateCompliance(id, payload, actor) {
     };
     compliances[index] = updated;
 
-    await logActivity(
-      updated.status === ComplianceStatus.COMPLETED ? ACTION_COMPLIANCE_COMPLETED : ACTION_COMPLIANCE_UPDATED,
-      actor.id,
-      id
-    );
+    await logActivity(completionOccurred ? ACTION_COMPLIANCE_COMPLETED : ACTION_COMPLIANCE_UPDATED, actor.id, id);
     return hydrateDummyCompliance(updated);
   }
 
@@ -296,8 +373,7 @@ async function updateCompliance(id, payload, actor) {
     if (payload.title !== undefined) data.title = payload.title;
     if (payload.description !== undefined) data.description = payload.description || null;
     if (payload.type !== undefined) {
-      validateComplianceType(payload.type);
-      data.type = payload.type;
+      data.type = await validateComplianceType(payload.type);
     }
     if (payload.dueDate !== undefined) data.dueDate = parseDate(payload.dueDate, "dueDate");
     if (payload.recurrence !== undefined) {
@@ -315,6 +391,8 @@ async function updateCompliance(id, payload, actor) {
     }
   }
 
+  const completionOccurred = applyRecurringCompletion(existing, data);
+
   if (Object.keys(data).length === 0) {
     throw new AppError("No valid fields were provided for update.", 400);
   }
@@ -325,11 +403,7 @@ async function updateCompliance(id, payload, actor) {
     include: complianceInclude
   });
 
-  await logActivity(
-    compliance.status === ComplianceStatus.COMPLETED ? ACTION_COMPLIANCE_COMPLETED : ACTION_COMPLIANCE_UPDATED,
-    actor.id,
-    id
-  );
+  await logActivity(completionOccurred ? ACTION_COMPLIANCE_COMPLETED : ACTION_COMPLIANCE_UPDATED, actor.id, id);
   return compliance;
 }
 

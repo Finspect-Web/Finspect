@@ -10,11 +10,11 @@ const { authorize } = require("../middleware/role.middleware");
 
 const router = express.Router();
 
-router.use(authenticate, authorize("ADMIN"));
+router.use(authenticate);
 
-router.post("/", createCredentialController);
-router.get("/:clientId", getCredentialsByClientController);
-router.put("/:id", updateCredentialController);
-router.delete("/:id", deleteCredentialController);
+router.post("/", authorize("ADMIN"), createCredentialController);
+router.get("/:clientId", authorize("ADMIN", "STAFF"), getCredentialsByClientController);
+router.put("/:id", authorize("ADMIN"), updateCredentialController);
+router.delete("/:id", authorize("ADMIN"), deleteCredentialController);
 
 module.exports = router;

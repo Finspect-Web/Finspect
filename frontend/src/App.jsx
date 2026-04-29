@@ -7,14 +7,12 @@ import CalendarPage from "./pages/CalendarPage";
 import ClientsPage from "./pages/ClientsPage";
 import ClientDetailPage from "./pages/ClientDetailPage";
 import CompliancePage from "./pages/CompliancePage";
-import CredentialsPage from "./pages/CredentialsPage";
 import DashboardPage from "./pages/DashboardPage";
 import AttendancePage from "./pages/AttendancePage";
 import LoginPage from "./pages/LoginPage";
 import ReportsPage from "./pages/ReportsPage";
 import SettingsPage from "./pages/SettingsPage";
 import TasksPage from "./pages/TasksPage";
-import TaskStagesPage from "./pages/TaskStagesPage";
 import TimesheetsPage from "./pages/TimesheetsPage";
 
 function HomeRedirect() {
@@ -49,27 +47,12 @@ export default function App() {
         <Route path="/clients" element={<ClientsPage />} />
         <Route path="/clients/:id" element={<ClientDetailPage />} />
         <Route path="/tasks" element={<TasksPage />} />
-        <Route
-          path="/task-stages"
-          element={
-            <ProtectedRoute allowedRoles={["ADMIN"]}>
-              <TaskStagesPage />
-            </ProtectedRoute>
-          }
-        />
         <Route path="/compliance" element={<CompliancePage />} />
         <Route path="/attendance" element={<AttendancePage />} />
         <Route path="/timesheets" element={<TimesheetsPage />} />
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/billing" element={<BillingPage />} />
-        <Route
-          path="/credentials"
-          element={
-            <ProtectedRoute allowedRoles={["ADMIN"]}>
-              <CredentialsPage />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/credentials" element={<Navigate to="/clients" replace />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>

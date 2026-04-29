@@ -120,6 +120,7 @@ model User {
   role                    Role             @default(STAFF)
   createdAt               DateTime         @default(now())
   createdClients          Client[]         @relation("ClientCreatedBy")
+  assignedClients         Client[]         @relation("ClientAssignedTo")
   assignedTasks           Task[]           @relation("TaskAssignedTo")
   delegatedTasks          Task[]           @relation("TaskAssignedBy")
   createdInvoices         Invoice[]        @relation("InvoiceCreatedBy")
@@ -146,7 +147,9 @@ model Client {
   address     String
   notes       String?
   createdById String           @db.Uuid
+  assignedToId String?         @db.Uuid
   createdBy   User             @relation("ClientCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  assignedTo  User?            @relation("ClientAssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
   tasks       Task[]
   credentials Credential[]
   invoices    Invoice[]
@@ -158,6 +161,7 @@ model Client {
   createdAt   DateTime         @default(now())
 
   @@index([createdById])
+  @@index([assignedToId])
 }
 
 model Task {

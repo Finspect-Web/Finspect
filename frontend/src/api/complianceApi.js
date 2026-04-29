@@ -1,5 +1,10 @@
 import api from "./axios";
 
+export async function getComplianceTypes() {
+  const response = await api.get("/compliance-types");
+  return response.data.data;
+}
+
 export async function getCompliances() {
   const response = await api.get("/compliance");
   return response.data.data;

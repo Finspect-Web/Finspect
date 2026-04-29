@@ -34,6 +34,7 @@ const clients = [
     address: "Bengaluru, Karnataka",
     notes: "Quarterly GST filing",
     createdById: adminId,
+    assignedToId: staffId,
     createdAt: new Date()
   },
   {
@@ -47,6 +48,7 @@ const clients = [
     address: "Kochi, Kerala",
     notes: "Monthly bookkeeping",
     createdById: adminId,
+    assignedToId: staffId,
     createdAt: new Date()
   }
 ];

@@ -1,10 +1,18 @@
-import { Trash2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Check, ChevronDown, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getClients } from "../api/clientApi";
-import { createCompliance, deleteCompliance, getCompliances, updateCompliance } from "../api/complianceApi";
+import { createCompliance, deleteCompliance, getComplianceTypes, getCompliances, updateCompliance } from "../api/complianceApi";
 import { getUsers } from "../api/userApi";
 import { useAuth } from "../hooks/useAuth";
 import { formatDate } from "../utils/date";
+
+const defaultTypeOptions = [
+  { value: "GST", label: "GST" },
+  { value: "TDS", label: "TDS" },
+  { value: "ROC", label: "ROC" },
+  { value: "INCOME_TAX", label: "Income Tax" },
+  { value: "OTHER", label: "Other" }
+];
 
 const emptyForm = {
   clientId: "",
@@ -23,32 +31,65 @@ const statusStyle = {
   OVERDUE: "bg-rose-50 text-rose-700 border-rose-200"
 };
 
+function normalizeTypeKey(value) {
+  return String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "_");
+}
+
+function buildTypeOptions(types) {
+  const map = new Map(defaultTypeOptions.map((option) => [normalizeTypeKey(option.value), option]));
+
+  for (const type of types) {
+    const name = String(type?.name || "").trim();
+    if (!name) continue;
+    const key = normalizeTypeKey(name);
+    if (!map.has(key)) {
+      map.set(key, { value: name, label: name });
+    }
+  }
+
+  return [...map.values()];
+}
+
 export default function CompliancePage() {
   const { user } = useAuth();
   const isAdmin = user.role === "ADMIN";
   const [items, setItems] = useState([]);
   const [clients, setClients] = useState([]);
   const [users, setUsers] = useState([]);
+  const [typeOptions, setTypeOptions] = useState(defaultTypeOptions);
+  const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
   const [filter, setFilter] = useState("ALL");
   const [search, setSearch] = useState("");
   const [error, setError] = useState("");
   const [form, setForm] = useState(emptyForm);
+  const typeDropdownRef = useRef(null);
 
   const loadData = useCallback(async () => {
     try {
-      const calls = [getCompliances(), getClients()];
-      if (isAdmin) calls.push(getUsers());
-      const [complianceData, clientData, userData] = await Promise.all(calls);
+      const [complianceData, clientData, complianceTypeData, userData] = await Promise.all([
+        getCompliances(),
+        getClients(),
+        getComplianceTypes().catch(() => []),
+        isAdmin ? getUsers() : Promise.resolve([])
+      ]);
+      const mergedTypeOptions = buildTypeOptions(complianceTypeData);
       setItems(complianceData);
       setClients(clientData);
-      if (userData) setUsers(userData);
+      setTypeOptions(mergedTypeOptions);
+      if (isAdmin) setUsers(userData);
       setForm((prev) => {
         const next = { ...prev };
         if (!next.clientId && clientData[0]) {
           next.clientId = clientData[0].id;
         }
-        if (!next.assignedToId && userData?.[0]) {
+        if (!next.assignedToId && userData[0]) {
           next.assignedToId = userData[0].id;
+        }
+        if (!mergedTypeOptions.some((option) => option.value === next.type)) {
+          next.type = "OTHER";
         }
         return next;
       });
@@ -60,6 +101,30 @@ export default function CompliancePage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    const onDocumentClick = (event) => {
+      if (!typeDropdownRef.current?.contains(event.target)) {
+        setIsTypeDropdownOpen(false);
+      }
+    };
+    const onEscape = (event) => {
+      if (event.key === "Escape") {
+        setIsTypeDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", onDocumentClick);
+    document.addEventListener("keydown", onEscape);
+    return () => {
+      document.removeEventListener("mousedown", onDocumentClick);
+      document.removeEventListener("keydown", onEscape);
+    };
+  }, []);
+
+  const selectedTypeOption = useMemo(() => {
+    return typeOptions.find((option) => option.value === form.type) || { value: form.type, label: form.type };
+  }, [form.type, typeOptions]);
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -132,9 +197,10 @@ export default function CompliancePage() {
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft dark:border-slate-700 dark:bg-slate-900">
           <h2 className="text-lg font-bold">Create Compliance Task</h2>
           <form className="mt-3 grid gap-3 md:grid-cols-2" onSubmit={onCreate}>
-            <label>
+            <label className="block">
               <span className="mb-1 block text-sm font-semibold text-slate-600">Client</span>
               <select
+                className="w-full"
                 required
                 value={form.clientId}
                 onChange={(event) => setForm((prev) => ({ ...prev, clientId: event.target.value }))}
@@ -148,9 +214,10 @@ export default function CompliancePage() {
               </select>
             </label>
 
-            <label>
+            <label className="block">
               <span className="mb-1 block text-sm font-semibold text-slate-600">Assigned To</span>
               <select
+                className="w-full"
                 required
                 value={form.assignedToId}
                 onChange={(event) => setForm((prev) => ({ ...prev, assignedToId: event.target.value }))}
@@ -164,18 +231,20 @@ export default function CompliancePage() {
               </select>
             </label>
 
-            <label>
+            <label className="block">
               <span className="mb-1 block text-sm font-semibold text-slate-600">Title</span>
               <input
+                className="w-full"
                 required
                 value={form.title}
                 onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
               />
             </label>
 
-            <label>
+            <label className="block">
               <span className="mb-1 block text-sm font-semibold text-slate-600">Due Date</span>
               <input
+                className="w-full"
                 required
                 type="date"
                 value={form.dueDate}
@@ -183,20 +252,60 @@ export default function CompliancePage() {
               />
             </label>
 
-            <label>
+            <label className="block">
               <span className="mb-1 block text-sm font-semibold text-slate-600">Type</span>
-              <select value={form.type} onChange={(event) => setForm((prev) => ({ ...prev, type: event.target.value }))}>
-                <option value="GST">GST</option>
-                <option value="TDS">TDS</option>
-                <option value="ROC">ROC</option>
-                <option value="INCOME_TAX">Income Tax</option>
-                <option value="OTHER">Other</option>
-              </select>
+              <div className="relative" ref={typeDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsTypeDropdownOpen((prev) => !prev)}
+                  className="flex w-full items-center justify-between rounded-xl border border-slate-300 bg-slate-100 px-3 py-2 text-left text-base font-medium text-slate-800 outline-none transition hover:bg-white focus:ring-2 focus:ring-brand-500/40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+                  aria-haspopup="listbox"
+                  aria-expanded={isTypeDropdownOpen}
+                >
+                  <span>{selectedTypeOption.label}</span>
+                  <ChevronDown
+                    size={16}
+                    className={`text-slate-500 transition-transform dark:text-slate-300 ${isTypeDropdownOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+
+                {isTypeDropdownOpen ? (
+                  <div className="absolute z-30 mt-2 w-full rounded-xl border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-700 dark:bg-slate-900">
+                    <ul role="listbox" className="max-h-56 space-y-1 overflow-y-auto scrollbar-thin">
+                      {typeOptions.map((option) => {
+                        const isSelected = option.value === form.type;
+                        return (
+                          <li key={option.value}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setForm((prev) => ({ ...prev, type: option.value }));
+                                setIsTypeDropdownOpen(false);
+                              }}
+                              className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-base transition ${
+                                isSelected
+                                  ? "bg-brand-50 font-semibold text-brand-900 dark:bg-brand-900/30 dark:text-brand-100"
+                                  : "text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                              }`}
+                              role="option"
+                              aria-selected={isSelected}
+                            >
+                              <span>{option.label}</span>
+                              {isSelected ? <Check size={16} /> : null}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
             </label>
 
-            <label>
+            <label className="block">
               <span className="mb-1 block text-sm font-semibold text-slate-600">Recurrence</span>
               <select
+                className="w-full"
                 value={form.recurrence}
                 onChange={(event) => setForm((prev) => ({ ...prev, recurrence: event.target.value }))}
               >
@@ -207,9 +316,10 @@ export default function CompliancePage() {
               </select>
             </label>
 
-            <label className="md:col-span-2">
+            <label className="block md:col-span-2">
               <span className="mb-1 block text-sm font-semibold text-slate-600">Description</span>
               <input
+                className="w-full"
                 value={form.description}
                 onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
               />

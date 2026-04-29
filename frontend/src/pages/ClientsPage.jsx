@@ -2,6 +2,7 @@ import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { createClient, deleteClient, getClients, updateClient } from "../api/clientApi";
+import { getUsers } from "../api/userApi";
 import { useAuth } from "../hooks/useAuth";
 import { formatFieldLabel } from "../utils/text";
 
@@ -10,6 +11,7 @@ const initialForm = {
   email: "",
   phone: "",
   companyName: "",
+  assignedToId: "",
   gstin: "",
   pan: "",
   address: "",
@@ -22,9 +24,11 @@ export default function ClientsPage() {
   const [clients, setClients] = useState([]);
   const [search, setSearch] = useState("");
   const [error, setError] = useState("");
+  const [users, setUsers] = useState([]);
   const [openForm, setOpenForm] = useState(false);
   const [currentClient, setCurrentClient] = useState(null);
   const [form, setForm] = useState(initialForm);
+  const [showOpenHint, setShowOpenHint] = useState(true);
 
   const loadClients = async () => {
     try {
@@ -39,6 +43,22 @@ export default function ClientsPage() {
     loadClients();
   }, []);
 
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    getUsers()
+      .then((data) => setUsers(data.filter((item) => item.role === "STAFF")))
+      .catch((loadError) => setError(loadError.message));
+  }, [isAdmin]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setShowOpenHint(false);
+    }, 5000);
+
+    return () => window.clearTimeout(timer);
+  }, []);
+
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return clients;
@@ -49,6 +69,8 @@ export default function ClientsPage() {
         client.email.toLowerCase().includes(query)
     );
   }, [clients, search]);
+
+  const staffOptions = useMemo(() => users, [users]);
 
   const openCreate = () => {
     setCurrentClient(null);
@@ -63,6 +85,7 @@ export default function ClientsPage() {
       email: client.email || "",
       phone: client.phone || "",
       companyName: client.companyName || "",
+      assignedToId: client.assignedToId || client.assignedTo?.id || "",
       gstin: client.gstin || "",
       pan: client.pan || "",
       address: client.address || "",
@@ -73,11 +96,16 @@ export default function ClientsPage() {
 
   const onSubmit = async (event) => {
     event.preventDefault();
+    const payload = {
+      ...form,
+      assignedToId: form.assignedToId || null
+    };
+
     try {
       if (currentClient) {
-        await updateClient(currentClient.id, form);
+        await updateClient(currentClient.id, payload);
       } else {
-        await createClient(form);
+        await createClient(payload);
       }
       setOpenForm(false);
       setCurrentClient(null);
@@ -100,6 +128,12 @@ export default function ClientsPage() {
 
   return (
     <div className="space-y-4">
+      {showOpenHint ? (
+        <div className="rounded-xl border border-brand-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-soft dark:border-brand-800/60 dark:bg-slate-900 dark:text-slate-200">
+          Click on client name to display details.
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-black">Clients</h1>
         <div className="flex gap-2">
@@ -184,22 +218,44 @@ export default function ClientsPage() {
       </div>
 
       {openForm ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-          <div className="w-full max-w-4xl rounded-2xl bg-white p-6 shadow-soft dark:bg-slate-900">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-6">
+          <div className="w-full max-w-4xl rounded-2xl bg-white p-7 shadow-soft dark:bg-slate-900">
             <h2 className="text-xl font-bold">{currentClient ? "Edit Client" : "Add Client"}</h2>
-            <form className="mt-4 grid gap-3 sm:grid-cols-2" onSubmit={onSubmit}>
-              {Object.entries(form).map(([key, value]) => (
-                <label key={key} className={key === "address" || key === "notes" ? "sm:col-span-2" : ""}>
-                  <span className="mb-1 block text-sm font-semibold text-slate-600">{formatFieldLabel(key)}</span>
-                  <input
-                    required={["name", "email", "phone", "companyName", "address"].includes(key)}
-                    value={value}
-                    onChange={(event) => setForm((prev) => ({ ...prev, [key]: event.target.value }))}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-800"
-                  />
-                </label>
-              ))}
-              <div className="sm:col-span-2 flex justify-end gap-2">
+            <form className="mt-5 grid gap-4 sm:grid-cols-2" onSubmit={onSubmit}>
+              {Object.entries(form).map(([key, value]) => {
+                if (key === "assignedToId") {
+                  return (
+                    <label key={key}>
+                      <span className="mb-1 block text-sm font-semibold text-slate-600">Assign To</span>
+                      <select
+                        value={value}
+                        onChange={(event) => setForm((prev) => ({ ...prev, assignedToId: event.target.value }))}
+                        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-800"
+                      >
+                        <option value="">Unassigned</option>
+                        {staffOptions.map((member) => (
+                          <option key={member.id} value={member.id}>
+                            {member.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  );
+                }
+
+                return (
+                  <label key={key} className={key === "address" || key === "notes" ? "sm:col-span-2" : ""}>
+                    <span className="mb-1 block text-sm font-semibold text-slate-600">{formatFieldLabel(key)}</span>
+                    <input
+                      required={["name", "email", "phone", "companyName", "address"].includes(key)}
+                      value={value}
+                      onChange={(event) => setForm((prev) => ({ ...prev, [key]: event.target.value }))}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-800"
+                    />
+                  </label>
+                );
+              })}
+              <div className="sm:col-span-2 flex justify-end gap-2 pt-1">
                 <button
                   type="button"
                   onClick={() => setOpenForm(false)}

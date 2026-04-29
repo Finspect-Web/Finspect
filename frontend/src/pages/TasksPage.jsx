@@ -1,12 +1,10 @@
 import { Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getClients } from "../api/clientApi";
-import { getTaskStages } from "../api/taskStageApi";
 import { createTask, deleteTask, getTasks, updateTask } from "../api/taskApi";
 import { getUsers } from "../api/userApi";
 import PriorityBadge from "../components/ui/PriorityBadge";
 import StatusBadge from "../components/ui/StatusBadge";
-import TaskStageBadge from "../components/ui/TaskStageBadge";
 import { useAuth } from "../hooks/useAuth";
 import { formatDate, isToday } from "../utils/date";
 
@@ -16,8 +14,7 @@ const emptyTaskForm = {
   assignedToId: "",
   clientId: "",
   dueDate: "",
-  priority: "MEDIUM",
-  stageId: ""
+  priority: "MEDIUM"
 };
 
 export default function TasksPage() {
@@ -26,7 +23,6 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState([]);
   const [clients, setClients] = useState([]);
   const [users, setUsers] = useState([]);
-  const [taskStages, setTaskStages] = useState([]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("UPCOMING");
   const [error, setError] = useState("");
@@ -36,18 +32,13 @@ export default function TasksPage() {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const promises = [getTasks(), getClients(), getTaskStages()];
+      const promises = [getTasks(), getClients()];
       if (isAdmin) {
         promises.push(getUsers());
       }
-      const [taskData, clientData, stageData, userData] = await Promise.all(promises);
+      const [taskData, clientData, userData] = await Promise.all(promises);
       setTasks(taskData);
       setClients(clientData);
-      setTaskStages(stageData);
-      setForm((prev) => ({
-        ...prev,
-        stageId: prev.stageId || stageData.find((item) => item.isDefault)?.id || stageData[0]?.id || ""
-      }));
       if (userData) {
         setUsers(userData);
       }
@@ -217,22 +208,6 @@ export default function TasksPage() {
                 <option value="HIGH">HIGH</option>
               </select>
             </label>
-            <label>
-              <span className="mb-1 block text-sm font-semibold text-slate-600">Task Stage</span>
-              <select
-                required
-                value={form.stageId || ""}
-                onChange={(event) => setForm((prev) => ({ ...prev, stageId: event.target.value }))}
-                className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-800"
-              >
-                <option value="">Select stage</option>
-                {taskStages.map((stage) => (
-                  <option key={stage.id} value={stage.id}>
-                    {stage.order}. {stage.name}
-                  </option>
-                ))}
-              </select>
-            </label>
             <div className="flex items-end">
               <button type="submit" className="w-full rounded-xl bg-brand-900 px-4 py-2 text-sm font-semibold text-white">
                 Assign Task
@@ -257,11 +232,10 @@ export default function TasksPage() {
                   Assigned user: {task.assignedTo.name} | Due: {formatDate(task.dueDate)}
                 </p>
               </div>
-                <div className="flex items-center gap-2">
-                  <TaskStageBadge stage={task.stage} />
-                  <PriorityBadge value={task.priority} />
-                  <StatusBadge value={task.status} />
-                  {isAdmin ? (
+              <div className="flex items-center gap-2">
+                <PriorityBadge value={task.priority} />
+                <StatusBadge value={task.status} />
+                {isAdmin ? (
                   <button
                     type="button"
                     onClick={() => removeTask(task.id)}
@@ -273,23 +247,6 @@ export default function TasksPage() {
               </div>
             </div>
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{task.description || "-"}</p>
-            {isAdmin ? (
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <span className="text-xs font-semibold text-slate-600">Move Stage:</span>
-                <select
-                  value={task.stage?.id || ""}
-                  onChange={(event) => updateTask(task.id, { stageId: event.target.value || null }).then(loadData).catch((updateError) => setError(updateError.message))}
-                  className="w-52 rounded-lg border border-slate-300 px-2 py-1 text-xs dark:border-slate-700 dark:bg-slate-800"
-                >
-                  <option value="">No stage</option>
-                  {taskStages.map((stage) => (
-                    <option key={stage.id} value={stage.id}>
-                      {stage.order}. {stage.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ) : null}
             {task.status === "PENDING" ? (
               <button
                 type="button"

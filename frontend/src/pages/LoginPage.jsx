@@ -27,9 +27,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-100 p-6 dark:bg-slate-950">
-      <div className="grid w-full max-w-7xl overflow-hidden rounded-2xl bg-white shadow-soft dark:bg-slate-900 lg:grid-cols-2">
-        <section className="flex flex-col justify-center bg-brand-900 px-10 py-14 text-white">
+    <div className="flex min-h-screen items-center justify-center bg-slate-100 p-4 sm:p-6 dark:bg-slate-950">
+      <div className="grid w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-soft dark:bg-slate-900 lg:min-h-[32rem] lg:grid-cols-2">
+        <section className="flex flex-col justify-center bg-brand-900 px-8 py-10 text-white sm:px-10">
           <p className="text-2xl font-extrabold">Finspect</p>
           <h1 className="mt-10 text-3xl font-extrabold leading-tight">Manage your practice smarter and faster</h1>
           <p className="mt-6 text-sm text-brand-100">
@@ -37,12 +37,12 @@ export default function LoginPage() {
           </p>
         </section>
 
-        <section className="flex items-center justify-center px-6 py-14 sm:px-10">
-          <div className="w-full max-w-2xl">
+        <section className="flex items-center justify-center px-6 py-10 sm:px-8 lg:px-10">
+          <div className="w-full max-w-sm">
             <h2 className="text-3xl font-extrabold">Sign In</h2>
             <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">Access your dashboard securely.</p>
 
-            <form className="mt-8 space-y-4" onSubmit={onSubmit}>
+            <form className="mt-7 space-y-4" onSubmit={onSubmit}>
               <label className="block">
                 <span className="mb-1 block text-xs font-semibold">Email</span>
                 <input

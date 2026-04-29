@@ -4,14 +4,12 @@ import {
   BriefcaseBusiness,
   ClipboardCheck,
   CalendarCheck2,
-  KeyRound,
   LayoutDashboard,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
   SquareKanban,
-  Table2,
   Users
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
@@ -21,13 +19,11 @@ const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/clients", label: "Clients", icon: BriefcaseBusiness },
   { to: "/tasks", label: "Tasks", icon: SquareKanban },
-  { to: "/task-stages", label: "Task Stages", icon: Table2, role: "ADMIN" },
   { to: "/compliance", label: "Compliance", icon: CalendarCheck2 },
   { to: "/attendance", label: "Attendance", icon: ClipboardCheck },
   { to: "/timesheets", label: "Timesheets", icon: Users },
   { to: "/calendar", label: "Calendar", icon: Calendar },
   { to: "/billing", label: "Billing", icon: BadgeIndianRupee },
-  { to: "/credentials", label: "Credentials", icon: KeyRound, role: "ADMIN" },
   { to: "/reports", label: "Reports", icon: Users },
   { to: "/settings", label: "Settings", icon: Settings }
 ];

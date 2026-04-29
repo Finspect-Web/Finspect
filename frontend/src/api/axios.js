@@ -4,7 +4,7 @@ const STORAGE_KEY = "finspect_auth";
 export const AUTH_SESSION_EXPIRED_EVENT = "finspect:auth-session-expired";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"
+  baseURL: import.meta.env.VITE_API_BASE_URL || "/api"
 });
 
 function readStoredAuth() {

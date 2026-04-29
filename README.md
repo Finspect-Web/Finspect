@@ -102,6 +102,7 @@ Frontend URL: `http://localhost:5173`
 - Dashboard metrics + pending notification badge
 - Email + WhatsApp structured notifications on assignment
 - Hourly cron reminders for tasks due in next 24 hours
+- Daily compliance reminders for due-tomorrow items (sent to assigned staff and creator/admin)
 - Task stage setup and stage movement from task board
 - Attendance tracking with self check-in/check-out and admin marking
 - Timesheet entry management with billable-hour summary

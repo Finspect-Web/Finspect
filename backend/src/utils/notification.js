@@ -107,7 +107,34 @@ async function sendTaskReminderEmail(task) {
   });
 }
 
+async function sendComplianceReminderNotifications(compliance) {
+  const recipients = [...new Set([compliance.assignedTo?.email, compliance.createdBy?.email].filter(Boolean))];
+  if (recipients.length === 0) {
+    return;
+  }
+
+  const subject = `Reminder: compliance due tomorrow - ${compliance.title}`;
+  const text = `Compliance "${compliance.title}" for ${compliance.client.companyName} is due on ${new Date(compliance.dueDate).toLocaleString()}.`;
+  const html = `<p>Compliance reminder for <strong>${compliance.client.companyName}</strong>.</p><p><strong>Task:</strong> ${compliance.title}</p><p><strong>Due:</strong> ${new Date(compliance.dueDate).toLocaleString()}</p>`;
+
+  const results = await Promise.allSettled(
+    recipients.map((to) =>
+      sendEmail({
+        to,
+        subject,
+        text,
+        html
+      })
+    )
+  );
+
+  results
+    .filter((item) => item.status === "rejected")
+    .forEach((item) => console.error("Compliance reminder notification error:", item.reason?.message || item.reason));
+}
+
 module.exports = {
   sendTaskAssignmentNotifications,
-  sendTaskReminderEmail
+  sendTaskReminderEmail,
+  sendComplianceReminderNotifications
 };
