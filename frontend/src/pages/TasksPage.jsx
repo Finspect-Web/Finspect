@@ -18,8 +18,8 @@ const emptyTaskForm = {
 };
 
 export default function TasksPage() {
-  const { user } = useAuth();
-  const isAdmin = user.role === "ADMIN";
+  const { user, isAuthenticated } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
   const [tasks, setTasks] = useState([]);
   const [clients, setClients] = useState([]);
   const [users, setUsers] = useState([]);
@@ -50,8 +50,9 @@ export default function TasksPage() {
   }, [isAdmin]);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     loadData();
-  }, [loadData]);
+  }, [loadData, isAuthenticated]);
 
   const filteredTasks = useMemo(() => {
     const query = search.toLowerCase().trim();
@@ -222,17 +223,16 @@ export default function TasksPage() {
         {filteredTasks.map((task) => (
           <article
             key={task.id}
-            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-700 dark:bg-slate-900"
+            className="rounded-lg border border-slate-200 bg-white p-3 shadow-soft dark:border-slate-700 dark:bg-slate-900"
           >
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-lg font-bold">{task.title}</p>
-                <p className="text-sm text-slate-500 dark:text-slate-400">{task.client.companyName}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Assigned user: {task.assignedTo.name} | Due: {formatDate(task.dueDate)}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+              <p className="truncate text-sm text-slate-700 dark:text-slate-200">
+                <span className="font-semibold text-slate-900 dark:text-white">{task.title}</span>
+                <span className="hidden sm:inline"> • {task.client.companyName}</span>
+                <span className="hidden sm:inline"> • {task.assignedTo?.name || "-"}</span>
+                <span> • {formatDate(task.dueDate)}</span>
+              </p>
+              <div className="flex items-center gap-2 self-start sm:self-auto">
                 <PriorityBadge value={task.priority} />
                 <StatusBadge value={task.status} />
                 {isAdmin ? (
@@ -246,7 +246,6 @@ export default function TasksPage() {
                 ) : null}
               </div>
             </div>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{task.description || "-"}</p>
             {task.status === "PENDING" ? (
               <button
                 type="button"

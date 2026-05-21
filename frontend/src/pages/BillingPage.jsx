@@ -33,8 +33,8 @@ const statusStyle = {
 };
 
 export default function BillingPage() {
-  const { user } = useAuth();
-  const isAdmin = user.role === "ADMIN";
+  const { user, isAuthenticated } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
   const [clients, setClients] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [search, setSearch] = useState("");
@@ -59,8 +59,9 @@ export default function BillingPage() {
   }, [invoiceForm.clientId]);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     loadData();
-  }, [loadData]);
+  }, [loadData, isAuthenticated]);
 
   const filteredInvoices = useMemo(() => {
     const query = search.trim().toLowerCase();

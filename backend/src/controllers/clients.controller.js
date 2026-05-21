@@ -17,7 +17,7 @@ const createClientController = asyncHandler(async (req, res) => {
 });
 
 const getClientsController = asyncHandler(async (req, res) => {
-  const data = await getClients();
+  const data = await getClients(req.user);
   res.status(200).json({
     success: true,
     data
@@ -25,7 +25,7 @@ const getClientsController = asyncHandler(async (req, res) => {
 });
 
 const getClientByIdController = asyncHandler(async (req, res) => {
-  const data = await getClientById(req.params.id);
+  const data = await getClientById(req.params.id, req.user);
   res.status(200).json({
     success: true,
     data

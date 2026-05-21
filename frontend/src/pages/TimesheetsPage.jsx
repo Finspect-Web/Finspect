@@ -28,8 +28,8 @@ const emptyForm = {
 };
 
 export default function TimesheetsPage() {
-  const { user } = useAuth();
-  const isAdmin = user.role === "ADMIN";
+  const { user, isAuthenticated } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
   const [users, setUsers] = useState([]);
   const [clients, setClients] = useState([]);
   const [tasks, setTasks] = useState([]);
@@ -65,8 +65,9 @@ export default function TimesheetsPage() {
   }, [filterUserId, from, isAdmin, to]);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     loadData();
-  }, [loadData]);
+  }, [loadData, isAuthenticated]);
 
   const resetForm = () => {
     setEditingId(null);

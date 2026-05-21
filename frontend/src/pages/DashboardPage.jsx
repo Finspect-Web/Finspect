@@ -48,22 +48,14 @@ export default function DashboardPage() {
                   key={task.id}
                   className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800"
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="space-y-1.5">
-                      <p className="text-base">
-                        <span className="font-semibold text-slate-700 dark:text-slate-200">Task:</span> {task.title}
-                      </p>
-                      <p className="text-base text-slate-600 dark:text-slate-300">
-                        <span className="font-semibold">Client:</span> {task.client.companyName}
-                      </p>
-                      <p className="text-base text-slate-600 dark:text-slate-300">
-                        <span className="font-semibold">Assigned to:</span> {task.assignedTo.name}
-                      </p>
-                      <p className="text-base text-slate-600 dark:text-slate-300">
-                        <span className="font-semibold">Due date:</span> {formatDate(task.dueDate)}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="min-w-0 truncate text-sm text-slate-700 dark:text-slate-200">
+                      <span className="font-semibold">{task.title}</span>
+                      <span className="hidden sm:inline"> • {task.client?.companyName || "-"}</span>
+                      <span className="hidden sm:inline"> • {task.assignedTo?.name || "-"}</span>
+                      <span> • {formatDate(task.dueDate)}</span>
+                    </p>
+                    <div className="flex items-center gap-2 self-start sm:self-auto">
                       <PriorityBadge value={task.priority} />
                       <StatusBadge value={task.status} />
                     </div>
@@ -92,22 +84,17 @@ export default function DashboardPage() {
                   key={task.id}
                   className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800"
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="space-y-1.5">
-                      <p className="text-base">
-                        <span className="font-semibold text-slate-700 dark:text-slate-200">Task:</span> {task.title}
-                      </p>
-                      <p className="text-base text-slate-600 dark:text-slate-300">
-                        <span className="font-semibold">Client:</span> {task.client.companyName}
-                      </p>
-                      <p className="text-base text-slate-600 dark:text-slate-300">
-                        <span className="font-semibold">Assigned to:</span> {task.assignedTo.name}
-                      </p>
-                      <p className="text-base text-slate-600 dark:text-slate-300">
-                        <span className="font-semibold">Due date:</span> {formatDate(task.dueDate)}
-                      </p>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="min-w-0 truncate text-sm text-slate-700 dark:text-slate-200">
+                      <span className="font-semibold">{task.title}</span>
+                      <span className="hidden sm:inline"> • {task.client?.companyName || "-"}</span>
+                      <span className="hidden sm:inline"> • {task.assignedTo?.name || "-"}</span>
+                      <span> • {formatDate(task.dueDate)}</span>
+                    </p>
+                    <div className="flex items-center gap-2 self-start sm:self-auto">
+                      <PriorityBadge value={task.priority} />
+                      <StatusBadge value={task.status} />
                     </div>
-                    <StatusBadge value={task.status} />
                   </div>
                 </article>
               ))

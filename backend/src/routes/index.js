@@ -1,5 +1,4 @@
 const express = require("express");
-const authRoutes = require("./auth.routes");
 const userRoutes = require("./users.routes");
 const clientRoutes = require("./clients.routes");
 const taskRoutes = require("./tasks.routes");
@@ -14,7 +13,6 @@ const calendarRoutes = require("./calendar.routes");
 
 const router = express.Router();
 
-router.use("/auth", authRoutes);
 router.use("/users", userRoutes);
 router.use("/clients", clientRoutes);
 router.use("/tasks", taskRoutes);

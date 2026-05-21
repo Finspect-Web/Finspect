@@ -5,6 +5,7 @@ const {
   clients,
   tasks,
   credentials,
+  documents,
   invoices,
   payments,
   createId,
@@ -32,10 +33,15 @@ const clientInclude = {
   _count: {
     select: {
       tasks: true,
-      credentials: true
+      credentials: true,
+      documents: true
     }
   }
 };
+
+function canAccessClient(client, actor) {
+  return actor?.role === "ADMIN" || client.assignedToId === actor?.id;
+}
 
 async function createClient(payload, actorId) {
   const { name, email, phone, companyName, gstin, pan, address, notes, assignedToId } = payload;
@@ -126,9 +132,11 @@ async function createClient(payload, actorId) {
   return client;
 }
 
-async function getClients() {
+async function getClients(actor) {
   if (isDummyMode()) {
-    return clients
+    const visibleClients = actor?.role === "ADMIN" ? clients : clients.filter((client) => client.assignedToId === actor?.id);
+
+    return visibleClients
       .slice()
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .map((client) => {
@@ -153,13 +161,17 @@ async function getClients() {
             : null,
           _count: {
             tasks: tasks.filter((item) => item.clientId === client.id).length,
-            credentials: credentials.filter((item) => item.clientId === client.id).length
+            credentials: credentials.filter((item) => item.clientId === client.id).length,
+            documents: documents.filter((item) => item.clientId === client.id).length
           }
         };
       });
   }
 
+  const where = actor?.role === "ADMIN" ? {} : { assignedToId: actor?.id };
+
   return prisma.client.findMany({
+    where,
     include: clientInclude,
     orderBy: {
       createdAt: "desc"
@@ -167,15 +179,22 @@ async function getClients() {
   });
 }
 
-async function getClientById(id) {
+async function getClientById(id, actor) {
   if (isDummyMode()) {
     const client = clients.find((item) => item.id === id);
     if (!client) {
       throw new AppError("Client not found.", 404);
     }
 
+    if (!canAccessClient(client, actor)) {
+      throw new AppError("You do not have access to this client.", 403);
+    }
+
     const createdBy = findUserById(client.createdById);
     const assignedTo = client.assignedToId ? findUserById(client.assignedToId) : null;
+    const clientDocuments = documents
+      .filter((item) => item.clientId === client.id)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return {
       ...client,
       createdBy: createdBy
@@ -195,7 +214,8 @@ async function getClientById(id) {
         : null,
       _count: {
         tasks: tasks.filter((item) => item.clientId === client.id).length,
-        credentials: credentials.filter((item) => item.clientId === client.id).length
+        credentials: credentials.filter((item) => item.clientId === client.id).length,
+        documents: documents.filter((item) => item.clientId === client.id).length
       },
       tasks: tasks
         .filter((item) => item.clientId === client.id)
@@ -206,7 +226,23 @@ async function getClientById(id) {
           status: item.status,
           priority: item.priority
         }))
-        .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+        .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()),
+      documents: clientDocuments.map((item) => ({
+        id: item.id,
+        title: item.title,
+        category: item.category,
+        fileUrl: item.fileUrl,
+        description: item.description,
+        expiresAt: item.expiresAt,
+        createdAt: item.createdAt,
+        uploadedBy: item.uploadedById
+          ? {
+              id: item.uploadedById,
+              name: findUserById(item.uploadedById)?.name || null,
+              email: findUserById(item.uploadedById)?.email || null
+            }
+          : null
+      }))
     };
   }
 
@@ -225,12 +261,35 @@ async function getClientById(id) {
         orderBy: {
           dueDate: "asc"
         }
+      },
+      documents: {
+        select: {
+          id: true,
+          title: true,
+          category: true,
+          fileUrl: true,
+          description: true,
+          expiresAt: true,
+          createdAt: true,
+          updatedAt: true,
+          uploadedBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true
+            }
+          }
+        }
       }
     }
   });
 
   if (!client) {
     throw new AppError("Client not found.", 404);
+  }
+
+  if (!canAccessClient(client, actor)) {
+    throw new AppError("You do not have access to this client.", 403);
   }
 
   return client;
@@ -356,6 +415,9 @@ async function deleteClient(id, actorId) {
     }
     for (let index = credentials.length - 1; index >= 0; index -= 1) {
       if (credentials[index].clientId === id) credentials.splice(index, 1);
+    }
+    for (let index = documents.length - 1; index >= 0; index -= 1) {
+      if (documents[index].clientId === id) documents.splice(index, 1);
     }
     for (let index = invoices.length - 1; index >= 0; index -= 1) {
       const invoice = invoices[index];

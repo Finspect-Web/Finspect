@@ -135,6 +135,21 @@ const credentials = [
   }
 ];
 
+const documents = [
+  {
+    id: randomUUID(),
+    clientId: clients[0].id,
+    title: "GST Registration Certificate",
+    category: "LEGAL",
+    fileUrl: "https://example.com/gst-certificate.pdf",
+    description: "Uploaded for client records.",
+    expiresAt: null,
+    uploadedById: adminId,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  }
+];
+
 const invoices = [
   {
     id: randomUUID(),
@@ -257,6 +272,7 @@ module.exports = {
   taskStages,
   tasks,
   credentials,
+  documents,
   invoices,
   payments,
   compliances,

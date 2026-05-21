@@ -2,9 +2,20 @@ const prisma = require("../prisma/client");
 const AppError = require("../utils/appError");
 const ActivityAction = require("../constants/activityActions");
 const { isDummyMode } = require("../utils/mode");
-const { credentials, clients, tasks, createId } = require("../utils/dummyStore");
+const { credentials, clients, createId } = require("../utils/dummyStore");
 const { encryptText, decryptText } = require("../utils/crypto");
 const { logActivity } = require("./activity.service");
+
+const PASSWORD_MASK = "********";
+
+function toCredentialResponse(credential) {
+  return {
+    ...credential,
+    type: credential.serviceName,
+    serviceName: credential.serviceName,
+    password: PASSWORD_MASK
+  };
+}
 
 const credentialInclude = {
   client: {
@@ -17,8 +28,9 @@ const credentialInclude = {
 };
 
 async function createCredential(payload, actorId) {
-  const { clientId, serviceName, username, password, notes } = payload;
-  if (!clientId || !serviceName || !username || !password) {
+  const { clientId, type, serviceName, username, password, notes } = payload;
+  const resolvedServiceName = serviceName || type;
+  if (!clientId || !resolvedServiceName || !username || !password) {
     throw new AppError("clientId, serviceName, username and password are required.", 400);
   }
 
@@ -29,7 +41,7 @@ async function createCredential(payload, actorId) {
     const credential = {
       id: createId(),
       clientId,
-      serviceName,
+      serviceName: resolvedServiceName,
       username,
       password,
       notes: notes || null,
@@ -37,14 +49,14 @@ async function createCredential(payload, actorId) {
     };
     credentials.unshift(credential);
     await logActivity(ActivityAction.CREDENTIAL_CREATED, actorId, credential.id);
-    return {
+    return toCredentialResponse({
       ...credential,
       client: {
         id: client.id,
         name: client.name,
         companyName: client.companyName
       }
-    };
+    });
   }
 
   const client = await prisma.client.findUnique({ where: { id: clientId } });
@@ -55,7 +67,7 @@ async function createCredential(payload, actorId) {
   const credential = await prisma.credential.create({
     data: {
       clientId,
-      serviceName,
+      serviceName: resolvedServiceName,
       username,
       password: encryptText(password),
       notes: notes || null
@@ -64,37 +76,20 @@ async function createCredential(payload, actorId) {
   });
 
   await logActivity(ActivityAction.CREDENTIAL_CREATED, actorId, credential.id);
-  return {
-    ...credential,
-    password
-  };
+  return toCredentialResponse(credential);
 }
 
-async function assertCredentialReadAccess(clientId, actor) {
+async function assertCredentialReadAccess(client, actor) {
   if (actor.role === "ADMIN") {
     return;
   }
 
-  if (isDummyMode()) {
-    const hasAssignedTask = tasks.some((item) => item.clientId === clientId && item.assignedToId === actor.id);
-    if (!hasAssignedTask) {
-      throw new AppError("You can view credentials only for clients assigned to you through tasks.", 403);
-    }
-    return;
+  if (client.assignedToId !== actor.id) {
+    throw new AppError("You can view credentials only for clients assigned to you.", 403);
   }
 
-  const hasAssignedTask = await prisma.task.findFirst({
-    where: {
-      clientId,
-      assignedToId: actor.id
-    },
-    select: {
-      id: true
-    }
-  });
-
-  if (!hasAssignedTask) {
-    throw new AppError("You can view credentials only for clients assigned to you through tasks.", 403);
+  if (isDummyMode()) {
+    return;
   }
 }
 
@@ -102,18 +97,20 @@ async function getCredentialsByClient(clientId, actor) {
   if (isDummyMode()) {
     const client = clients.find((item) => item.id === clientId);
     if (!client) throw new AppError("Client not found.", 404);
-    await assertCredentialReadAccess(clientId, actor);
+    await assertCredentialReadAccess(client, actor);
 
     return credentials
       .filter((item) => item.clientId === clientId)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .map((item) => ({
         ...item,
+        type: item.serviceName,
         client: {
           id: client.id,
           name: client.name,
           companyName: client.companyName
-        }
+        },
+        password: PASSWORD_MASK
       }));
   }
 
@@ -121,7 +118,7 @@ async function getCredentialsByClient(clientId, actor) {
   if (!client) {
     throw new AppError("Client not found.", 404);
   }
-  await assertCredentialReadAccess(clientId, actor);
+  await assertCredentialReadAccess(client, actor);
 
   const dbCredentials = await prisma.credential.findMany({
     where: { clientId },
@@ -131,7 +128,7 @@ async function getCredentialsByClient(clientId, actor) {
     }
   });
 
-  return dbCredentials.map((credential) => ({
+  return dbCredentials.map((credential) => toCredentialResponse({
     ...credential,
     password: decryptText(credential.password)
   }));
@@ -144,12 +141,14 @@ async function updateCredential(id, payload, actorId) {
 
     const existing = credentials[credentialIndex];
     const updated = { ...existing };
+    if (payload.type !== undefined) updated.serviceName = payload.type;
     if (payload.serviceName !== undefined) updated.serviceName = payload.serviceName;
     if (payload.username !== undefined) updated.username = payload.username;
     if (payload.password !== undefined) updated.password = payload.password;
     if (payload.notes !== undefined) updated.notes = payload.notes || null;
 
     if (
+      payload.type === undefined &&
       payload.serviceName === undefined &&
       payload.username === undefined &&
       payload.password === undefined &&
@@ -162,7 +161,7 @@ async function updateCredential(id, payload, actorId) {
     await logActivity(ActivityAction.CREDENTIAL_UPDATED, actorId, id);
 
     const client = clients.find((item) => item.id === updated.clientId);
-    return {
+    return toCredentialResponse({
       ...updated,
       client: client
         ? {
@@ -171,7 +170,7 @@ async function updateCredential(id, payload, actorId) {
             companyName: client.companyName
           }
         : null
-    };
+    });
   }
 
   const existing = await prisma.credential.findUnique({ where: { id } });
@@ -180,6 +179,7 @@ async function updateCredential(id, payload, actorId) {
   }
 
   const data = {};
+  if (payload.type !== undefined) data.serviceName = payload.type;
   if (payload.serviceName !== undefined) data.serviceName = payload.serviceName;
   if (payload.username !== undefined) data.username = payload.username;
   if (payload.password !== undefined) data.password = encryptText(payload.password);
@@ -197,10 +197,10 @@ async function updateCredential(id, payload, actorId) {
 
   await logActivity(ActivityAction.CREDENTIAL_UPDATED, actorId, id);
 
-  return {
+  return toCredentialResponse({
     ...credential,
     password: payload.password !== undefined ? payload.password : decryptText(credential.password)
-  };
+  });
 }
 
 async function deleteCredential(id, actorId) {

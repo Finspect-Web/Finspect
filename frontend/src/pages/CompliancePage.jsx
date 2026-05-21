@@ -54,8 +54,8 @@ function buildTypeOptions(types) {
 }
 
 export default function CompliancePage() {
-  const { user } = useAuth();
-  const isAdmin = user.role === "ADMIN";
+  const { user, isAuthenticated } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
   const [items, setItems] = useState([]);
   const [clients, setClients] = useState([]);
   const [users, setUsers] = useState([]);
@@ -99,8 +99,9 @@ export default function CompliancePage() {
   }, [isAdmin]);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     loadData();
-  }, [loadData]);
+  }, [loadData, isAuthenticated]);
 
   useEffect(() => {
     const onDocumentClick = (event) => {

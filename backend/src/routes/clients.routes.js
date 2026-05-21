@@ -7,16 +7,16 @@ const {
   deleteClientController
 } = require("../controllers/clients.controller");
 const { authenticate } = require("../middleware/auth.middleware");
-const { authorize } = require("../middleware/role.middleware");
+const { checkRole, checkClientAccess } = require("../middleware/role.middleware");
 
 const router = express.Router();
 
 router.use(authenticate);
 
-router.post("/", authorize("ADMIN"), createClientController);
+router.post("/", checkRole("ADMIN"), createClientController);
 router.get("/", getClientsController);
-router.get("/:id", getClientByIdController);
-router.put("/:id", authorize("ADMIN"), updateClientController);
-router.delete("/:id", authorize("ADMIN"), deleteClientController);
+router.get("/:id", checkClientAccess, getClientByIdController);
+router.put("/:id", checkRole("ADMIN"), updateClientController);
+router.delete("/:id", checkRole("ADMIN"), deleteClientController);
 
 module.exports = router;

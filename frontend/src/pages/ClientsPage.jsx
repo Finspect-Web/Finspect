@@ -19,8 +19,8 @@ const initialForm = {
 };
 
 export default function ClientsPage() {
-  const { user } = useAuth();
-  const isAdmin = user.role === "ADMIN";
+  const { user, isAuthenticated } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
   const [clients, setClients] = useState([]);
   const [search, setSearch] = useState("");
   const [error, setError] = useState("");
@@ -40,8 +40,9 @@ export default function ClientsPage() {
   };
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     loadClients();
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (!isAdmin) return;
