@@ -1,8 +1,9 @@
-import { Bell, Moon, Search, Sun } from "lucide-react";
+import { Bell, Moon, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
+import MasterSearch from "../MasterSearch";
 import { useAuth } from "../../hooks/useAuth";
 
-export default function Topbar({ notificationCount, onOpenSearch }) {
+export default function Topbar({ notificationCount }) {
   const { user } = useAuth();
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("finspect_theme") === "dark");
 
@@ -25,15 +26,9 @@ export default function Topbar({ notificationCount, onOpenSearch }) {
         </div>
       </div>
       <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={onOpenSearch}
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-          title="Search (Ctrl+K)"
-        >
-          <Search size={15} />
-          <span className="hidden sm:inline">Search</span>
-        </button>
+        <div className="hidden lg:block">
+          <MasterSearch className="min-w-[420px] lg:min-w-[520px]" />
+        </div>
 
         <button
           type="button"

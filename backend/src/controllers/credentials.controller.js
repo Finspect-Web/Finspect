@@ -2,6 +2,7 @@ const asyncHandler = require("../utils/asyncHandler");
 const {
   createCredential,
   getCredentialsByClient,
+  getCredentialPassword,
   updateCredential,
   deleteCredential
 } = require("../services/credentials.service");
@@ -17,6 +18,14 @@ const createCredentialController = asyncHandler(async (req, res) => {
 
 const getCredentialsByClientController = asyncHandler(async (req, res) => {
   const data = await getCredentialsByClient(req.params.clientId, req.user);
+  res.status(200).json({
+    success: true,
+    data
+  });
+});
+
+const getCredentialPasswordController = asyncHandler(async (req, res) => {
+  const data = await getCredentialPassword(req.params.id, req.user);
   res.status(200).json({
     success: true,
     data
@@ -43,6 +52,7 @@ const deleteCredentialController = asyncHandler(async (req, res) => {
 module.exports = {
   createCredentialController,
   getCredentialsByClientController,
+  getCredentialPasswordController,
   updateCredentialController,
   deleteCredentialController
 };

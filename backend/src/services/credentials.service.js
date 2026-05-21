@@ -134,6 +134,42 @@ async function getCredentialsByClient(clientId, actor) {
   }));
 }
 
+async function getCredentialPassword(id, actor) {
+  if (isDummyMode()) {
+    const credential = credentials.find((item) => item.id === id);
+    if (!credential) throw new AppError("Credential not found.", 404);
+
+    const client = clients.find((item) => item.id === credential.clientId);
+    if (!client) throw new AppError("Client not found.", 404);
+
+    await assertCredentialReadAccess(client, actor);
+    return { id: credential.id, password: credential.password };
+  }
+
+  const credential = await prisma.credential.findUnique({
+    where: { id },
+    include: {
+      client: {
+        select: {
+          id: true,
+          assignedToId: true
+        }
+      }
+    }
+  });
+
+  if (!credential) {
+    throw new AppError("Credential not found.", 404);
+  }
+
+  if (!credential.client) {
+    throw new AppError("Client not found.", 404);
+  }
+
+  await assertCredentialReadAccess(credential.client, actor);
+  return { id: credential.id, password: decryptText(credential.password) };
+}
+
 async function updateCredential(id, payload, actorId) {
   if (isDummyMode()) {
     const credentialIndex = credentials.findIndex((item) => item.id === id);
@@ -224,6 +260,7 @@ async function deleteCredential(id, actorId) {
 module.exports = {
   createCredential,
   getCredentialsByClient,
+  getCredentialPassword,
   updateCredential,
   deleteCredential
 };

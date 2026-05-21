@@ -5,6 +5,11 @@ export async function getCredentials(clientId) {
   return response.data.data;
 }
 
+export async function getCredentialPassword(id) {
+  const response = await api.get(`/credentials/${id}/password`);
+  return response.data.data;
+}
+
 export async function createCredential(payload) {
   const response = await api.post("/credentials", payload);
   return response.data.data;
