@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "prisma:generate": "prisma generate",
+    "prisma:generate": "node scripts/clean-prisma-temp.js && prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "prisma:seed": "node prisma/seed.js"
@@ -24,6 +24,7 @@
     "jsonwebtoken": "^9.0.3",
     "node-cron": "^4.2.1",
     "nodemailer": "^8.0.6",
+    "pg": "^8.21.0",
     "prisma": "^5.22.0",
     "twilio": "^6.0.0"
   },

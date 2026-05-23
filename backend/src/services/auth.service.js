@@ -136,7 +136,91 @@ async function registerUser(payload, actorId) {
   return user;
 }
 
+async function signupUser(payload) {
+  const { name, email, password, role = Role.STAFF } = payload;
+
+  if (!name || !email || !password) {
+    throw new AppError("Name, email and password are required.", 400);
+  }
+
+  if (![Role.ADMIN, Role.STAFF].includes(role)) {
+    throw new AppError("Role must be ADMIN or STAFF.", 400);
+  }
+
+  if (isDummyMode()) {
+    const existingDummyUser = users.find((item) => item.email.toLowerCase() === email.toLowerCase());
+    if (existingDummyUser) {
+      throw new AppError("A user with this email already exists.", 409);
+    }
+
+    const newUser = {
+      id: createId(),
+      name,
+      email,
+      password,
+      role,
+      createdAt: new Date()
+    };
+    users.unshift(newUser);
+
+    const token = signToken({
+      id: newUser.id,
+      email: newUser.email,
+      role: newUser.role,
+      name: newUser.name
+    });
+
+    await logActivity(ActivityAction.USER_CREATED, newUser.id, newUser.id);
+
+    return {
+      token,
+      user: {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role
+      }
+    };
+  }
+
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) {
+    throw new AppError("A user with this email already exists.", 409);
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 12);
+
+  const user = await prisma.user.create({
+    data: {
+      name,
+      email,
+      password: hashedPassword,
+      role
+    }
+  });
+
+  const token = signToken({
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    name: user.name
+  });
+
+  await logActivity(ActivityAction.USER_CREATED, user.id, user.id);
+
+  return {
+    token,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role
+    }
+  };
+}
+
 module.exports = {
   loginUser,
-  registerUser
+  registerUser,
+  signupUser
 };

@@ -1,5 +1,5 @@
 const asyncHandler = require("../utils/asyncHandler");
-const { loginUser, registerUser } = require("../services/auth.service");
+const { loginUser, registerUser, signupUser } = require("../services/auth.service");
 
 const login = asyncHandler(async (req, res) => {
   const data = await loginUser(req.body);
@@ -19,7 +19,17 @@ const register = asyncHandler(async (req, res) => {
   });
 });
 
+const signup = asyncHandler(async (req, res) => {
+  const data = await signupUser(req.body);
+  res.status(201).json({
+    success: true,
+    message: "Account created successfully.",
+    data
+  });
+});
+
 module.exports = {
   login,
-  register
+  register,
+  signup
 };
