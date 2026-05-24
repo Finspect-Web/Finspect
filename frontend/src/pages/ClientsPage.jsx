@@ -1,5 +1,6 @@
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import PageTransition from "../components/PageTransition";
 import { Link } from "react-router-dom";
 import { createClient, deleteClient, getClients, updateClient } from "../api/clientApi";
 import { getUsers } from "../api/userApi";
@@ -128,7 +129,7 @@ export default function ClientsPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <PageTransition className="space-y-4">
       {showOpenHint ? (
         <div className="rounded-xl border border-brand-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-soft dark:border-brand-800/60 dark:bg-slate-900 dark:text-slate-200">
           Click on client name to display details.
@@ -272,6 +273,6 @@ export default function ClientsPage() {
           </div>
         </div>
       ) : null}
-    </div>
+    </PageTransition>
   );
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import PageTransition from "../components/PageTransition";
 import { checkInAttendance, checkOutAttendance, getAttendanceList, getAttendanceToday, markAttendance } from "../api/attendanceApi";
 import { getUsers } from "../api/userApi";
 import { useAuth } from "../hooks/useAuth";
@@ -98,7 +99,7 @@ export default function AttendancePage() {
   };
 
   return (
-    <div className="space-y-5">
+    <PageTransition className="space-y-5">
       <h1 className="text-xl font-black">Attendance</h1>
 
       {error ? <p className="text-sm font-semibold text-rose-600">{error}</p> : null}
@@ -243,6 +244,6 @@ export default function AttendancePage() {
           </table>
         </div>
       </section>
-    </div>
+    </PageTransition>
   );
 }

@@ -1,5 +1,6 @@
 import { Check, ChevronDown, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import PageTransition from "../components/PageTransition";
 import { getClients } from "../api/clientApi";
 import { createCompliance, deleteCompliance, getComplianceTypes, getCompliances, updateCompliance } from "../api/complianceApi";
 import { getUsers } from "../api/userApi";
@@ -172,7 +173,7 @@ export default function CompliancePage() {
   };
 
   return (
-    <div className="space-y-5">
+    <PageTransition className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-black">Compliance Calendar</h1>
         <div className="flex gap-2">
@@ -387,6 +388,6 @@ export default function CompliancePage() {
 
         {filtered.length === 0 ? <p className="text-sm text-slate-500">No compliance items found.</p> : null}
       </section>
-    </div>
+    </PageTransition>
   );
 }

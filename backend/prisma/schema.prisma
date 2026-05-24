@@ -112,6 +112,12 @@ enum AttendanceStatus {
   LEAVE
 }
 
+enum SyncStatus {
+  SYNCED
+  PENDING
+  FAILED
+}
+
 model User {
   id                      String           @id @default(uuid()) @db.Uuid
   name                    String
@@ -119,6 +125,15 @@ model User {
   password                String
   role                    Role             @default(STAFF)
   createdAt               DateTime         @default(now())
+
+  // Google Calendar integration fields
+  googleAccessToken       String?
+  googleRefreshToken      String?
+  googleCalendarConnected Boolean          @default(false)
+  googleEmail             String?
+  tokenExpiryDate         DateTime?
+  googleSyncToken         String?
+
   createdClients          Client[]         @relation("ClientCreatedBy")
   assignedClients         Client[]         @relation("ClientAssignedTo")
   assignedTasks           Task[]           @relation("TaskAssignedTo")
@@ -134,6 +149,7 @@ model User {
   createdWorkflowInstances WorkflowInstance[] @relation("WorkflowInstanceCreatedBy")
   attendances             Attendance[]
   timesheetEntries        TimesheetEntry[]
+  calendarEvents          CalendarEvent[]
 }
 
 model Client {
@@ -180,6 +196,10 @@ model Task {
   workflowInstanceId String?          @db.Uuid
   stageId           String?           @db.Uuid
   createdAt         DateTime          @default(now())
+
+  // Google Calendar sync
+  googleEventId     String?
+
   assignedTo        User              @relation("TaskAssignedTo", fields: [assignedToId], references: [id], onDelete: Restrict)
   assignedBy        User              @relation("TaskAssignedBy", fields: [assignedById], references: [id], onDelete: Restrict)
   client            Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
@@ -290,6 +310,10 @@ model ComplianceItem {
   createdById  String           @db.Uuid
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
+
+  // Google Calendar sync
+  googleEventId String?
+
   client       Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
   assignedTo   User             @relation("ComplianceAssignedTo", fields: [assignedToId], references: [id], onDelete: Restrict)
   createdBy    User             @relation("ComplianceCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
@@ -424,4 +448,38 @@ model TimesheetEntry {
   @@index([userId, workDate])
   @@index([clientId, workDate])
   @@index([taskId, workDate])
+}
+
+model CalendarEvent {
+  id                String       @id @default(uuid()) @db.Uuid
+  googleEventId     String?
+  calendarId        String?
+  syncStatus        SyncStatus   @default(PENDING)
+  lastSyncedAt      DateTime?
+
+  // Source entity
+  sourceType        String       // "TASK" or "COMPLIANCE"
+  sourceId          String       // UUID of the task or compliance item
+
+  // Event details
+  title             String
+  description       String?
+  startAt           DateTime
+  endAt             DateTime
+  allDay            Boolean      @default(false)
+  recurrence        String?      // RRULE string for recurring events
+  attendees         Json?        // Array of { email, name, responseStatus }
+  googleMeetLink    String?
+
+  // Ownership
+  userId            String       @db.Uuid
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([sourceType, sourceId])
+  @@index([googleEventId])
+  @@index([startAt, endAt])
 }

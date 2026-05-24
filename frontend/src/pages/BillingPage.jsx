@@ -1,5 +1,6 @@
 import { Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import PageTransition from "../components/PageTransition";
 import { getClients } from "../api/clientApi";
 import { addInvoicePayment, createInvoice, deleteInvoice, getInvoices } from "../api/invoiceApi";
 import { useAuth } from "../hooks/useAuth";
@@ -121,7 +122,7 @@ export default function BillingPage() {
   };
 
   return (
-    <div className="space-y-5">
+    <PageTransition className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-black">Billing & Invoices</h1>
         {isAdmin ? (
@@ -423,6 +424,6 @@ export default function BillingPage() {
           </div>
         </div>
       ) : null}
-    </div>
+    </PageTransition>
   );
 }

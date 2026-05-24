@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import PageTransition from "../components/PageTransition";
 import { getActivityLogs, getStaffMonitoring } from "../api/dashboardApi";
 import { useAuth } from "../hooks/useAuth";
 import { formatDateTime } from "../utils/date";
@@ -24,7 +25,7 @@ export default function ReportsPage() {
   }, [user.role]);
 
   return (
-    <div className="space-y-5">
+    <PageTransition className="space-y-5">
       <h1 className="text-xl font-black">Reports & Monitoring</h1>
       {error ? <p className="text-sm font-semibold text-rose-600">{error}</p> : null}
 
@@ -81,6 +82,6 @@ export default function ReportsPage() {
           {activity.length === 0 ? <p className="text-sm text-slate-500">No activity logs found.</p> : null}
         </div>
       </section>
-    </div>
+    </PageTransition>
   );
 }

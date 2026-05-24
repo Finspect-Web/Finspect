@@ -5,6 +5,7 @@ const { isDummyMode } = require("../utils/mode");
 const { logActivity } = require("./activity.service");
 const ActivityAction = require("../constants/activityActions");
 const { compliances, clients, users, createId, findUserById } = require("../utils/dummyStore");
+const googleCalendar = require("./googleCalendar.service");
 
 const Role = prismaTypes.Role || { ADMIN: "ADMIN", STAFF: "STAFF" };
 const defaultComplianceTypes = {
@@ -256,6 +257,43 @@ async function createCompliance(payload, actorId) {
   });
 
   await logActivity(ACTION_COMPLIANCE_CREATED, actorId, compliance.id);
+
+  // Sync to Google Calendar if admin has it connected
+  try {
+    const admin = await prisma.user.findUnique({
+      where: { id: actorId },
+      select: { googleCalendarConnected: true, id: true, email: true, name: true }
+    });
+    if (admin?.googleCalendarConnected) {
+      const attendees = [
+        { email: compliance.assignedTo.email, name: compliance.assignedTo.name },
+        { email: admin.email, name: admin.name }
+      ];
+      const isRecurring = compliance.recurrence && compliance.recurrence !== "NONE";
+      const googleEventId = await googleCalendar.syncEventToGoogle(
+        actorId,
+        "COMPLIANCE",
+        compliance.id,
+        {
+          title: `[Compliance] ${compliance.title}`,
+          description: `Client: ${compliance.client.companyName}\nType: ${compliance.type}\nAssigned to: ${compliance.assignedTo.name}\n\n${compliance.description || ""}`,
+          startAt: compliance.dueDate,
+          endAt: compliance.dueDate,
+          attendees,
+          recurrence: isRecurring ? compliance.recurrence : undefined,
+          addMeetLink: false
+        }
+      );
+      // Store googleEventId on compliance
+      await prisma.complianceItem.update({
+        where: { id: compliance.id },
+        data: { googleEventId }
+      });
+    }
+  } catch (gcError) {
+    console.error("Failed to sync compliance to Google Calendar:", gcError.message);
+  }
+
   return compliance;
 }
 
@@ -404,6 +442,32 @@ async function updateCompliance(id, payload, actor) {
   });
 
   await logActivity(completionOccurred ? ACTION_COMPLIANCE_COMPLETED : ACTION_COMPLIANCE_UPDATED, actor.id, id);
+
+  // Sync changes to Google Calendar
+  if (existing.googleEventId && (data.dueDate || data.title || data.description || data.status || data.recurrence)) {
+    try {
+      const isRecurring = compliance.recurrence && compliance.recurrence !== "NONE";
+      await googleCalendar.syncEventUpdate(
+        actor.id,
+        "COMPLIANCE",
+        id,
+        {
+          title: `[Compliance] ${compliance.title}`,
+          description: `Client: ${compliance.client.companyName}\nType: ${compliance.type}\nAssigned to: ${compliance.assignedTo.name}\n\n${compliance.description || ""}`,
+          startAt: compliance.dueDate,
+          endAt: compliance.dueDate,
+          attendees: [
+            { email: compliance.assignedTo.email, name: compliance.assignedTo.name },
+          ],
+          recurrence: isRecurring ? compliance.recurrence : undefined,
+          addMeetLink: false,
+        }
+      );
+    } catch (gcError) {
+      console.error("Failed to sync compliance update to Google Calendar:", gcError.message);
+    }
+  }
+
   return compliance;
 }
 
@@ -418,6 +482,15 @@ async function deleteCompliance(id, actorId) {
 
   const existing = await prisma.complianceItem.findUnique({ where: { id } });
   if (!existing) throw new AppError("Compliance item not found.", 404);
+
+  // Delete from Google Calendar if synced
+  if (existing.googleEventId) {
+    try {
+      await googleCalendar.syncEventDelete(actorId, "COMPLIANCE", id);
+    } catch (gcError) {
+      console.error("Failed to delete compliance from Google Calendar:", gcError.message);
+    }
+  }
 
   await prisma.complianceItem.delete({ where: { id } });
   await logActivity(ACTION_COMPLIANCE_UPDATED, actorId, id);

@@ -1,21 +1,16 @@
-import { Bell, Moon, Sun } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Bell } from "lucide-react";
+import { useEffect } from "react";
 import MasterSearch from "../MasterSearch";
 import { useAuth } from "../../hooks/useAuth";
 
 export default function Topbar({ notificationCount }) {
   const { user } = useAuth();
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem("finspect_theme") === "dark");
 
+  // Clean up any persisted dark mode — app is light theme only
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("finspect_theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("finspect_theme", "light");
-    }
-  }, [darkMode]);
+    document.documentElement.classList.remove("dark");
+    localStorage.removeItem("finspect_theme");
+  }, []);
 
   return (
     <header className="flex h-14 items-center justify-between border-b border-slate-200 bg-slate-50 px-6 dark:border-slate-800 dark:bg-slate-900">
@@ -29,15 +24,6 @@ export default function Topbar({ notificationCount }) {
         <div className="hidden lg:block">
           <MasterSearch className="min-w-[420px] lg:min-w-[520px]" />
         </div>
-
-        <button
-          type="button"
-          onClick={() => setDarkMode((prev) => !prev)}
-          className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-          title="Toggle dark mode"
-        >
-          {darkMode ? <Sun size={16} /> : <Moon size={16} />}
-        </button>
 
         <div className="relative rounded-lg p-1.5 text-slate-500 dark:text-slate-300">
           <Bell size={16} />

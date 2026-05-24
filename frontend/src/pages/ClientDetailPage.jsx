@@ -1,6 +1,7 @@
 import { Copy, Download, Pencil, Trash2, Upload } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
+import PageTransition from "../components/PageTransition";
 import { createCredential, deleteCredential, getCredentialPassword, getCredentials, updateCredential } from "../api/credentialApi";
 import { createDocument, getDocuments } from "../api/documentApi";
 import { getClientById } from "../api/clientApi";
@@ -324,7 +325,7 @@ export default function ClientDetailPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <PageTransition className="space-y-4">
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft dark:border-slate-700 dark:bg-slate-900">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -732,6 +733,6 @@ export default function ClientDetailPage() {
           </form>
         </Modal>
       ) : null}
-    </div>
+    </PageTransition>
   );
 }

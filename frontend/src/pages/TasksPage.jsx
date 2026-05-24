@@ -1,5 +1,6 @@
 import { Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import PageTransition from "../components/PageTransition";
 import { getClients } from "../api/clientApi";
 import { createTask, deleteTask, getTasks, updateTask } from "../api/taskApi";
 import { getUsers } from "../api/userApi";
@@ -104,7 +105,7 @@ export default function TasksPage() {
   };
 
   return (
-    <div className="space-y-5">
+    <PageTransition className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-black">Tasks</h1>
         <div className="flex flex-wrap gap-2">
@@ -259,6 +260,6 @@ export default function TasksPage() {
         ))}
         {filteredTasks.length === 0 && !loading ? <p className="text-sm text-slate-500">No tasks found.</p> : null}
       </section>
-    </div>
+    </PageTransition>
   );
 }

@@ -1,5 +1,6 @@
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import PageTransition from "../components/PageTransition";
 import { getClients } from "../api/clientApi";
 import { getTasks } from "../api/taskApi";
 import { createTimesheetEntry, deleteTimesheetEntry, getTimesheetEntries, updateTimesheetEntry } from "../api/timesheetApi";
@@ -124,7 +125,7 @@ export default function TimesheetsPage() {
   };
 
   return (
-    <div className="space-y-5">
+    <PageTransition className="space-y-5">
       <h1 className="text-xl font-black">Timesheets</h1>
 
       {error ? <p className="text-sm font-semibold text-rose-600">{error}</p> : null}
@@ -314,6 +315,6 @@ export default function TimesheetsPage() {
           </table>
         </div>
       </section>
-    </div>
+    </PageTransition>
   );
 }

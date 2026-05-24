@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import {
   BadgeIndianRupee,
   Calendar,
@@ -34,7 +35,10 @@ export default function Sidebar({ isOpen, onToggle }) {
   const items = navItems.filter((item) => !item.role || item.role === user.role);
 
   return (
-    <aside
+    <motion.aside
+      initial={{ opacity: 0, x: -30 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}
       className={`flex h-full flex-col border-r border-slate-200 bg-slate-50 px-3 py-5 transition-all duration-200 dark:border-slate-800 dark:bg-slate-900 ${
         isOpen ? "w-64" : "w-20"
       }`}
@@ -56,12 +60,26 @@ export default function Sidebar({ isOpen, onToggle }) {
         </div>
       </div>
 
-      <nav className="flex-1 space-y-1">
+      <motion.nav
+        className="flex-1 space-y-1"
+        initial="hidden"
+        animate="show"
+        variants={{
+          hidden: {},
+          show: { transition: { staggerChildren: 0.04, delayChildren: 0.1 } }
+        }}
+      >
         {items.map((item) => {
           const Icon = item.icon;
           return (
-            <NavLink
+            <motion.div
               key={item.to}
+              variants={{
+                hidden: { opacity: 0, x: -12 },
+                show: { opacity: 1, x: 0, transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] } }
+              }}
+            >
+            <NavLink
               to={item.to}
               className={({ isActive }) =>
                 `flex items-center rounded-xl py-2.5 text-[13px] font-medium transition ${
@@ -77,9 +95,10 @@ export default function Sidebar({ isOpen, onToggle }) {
               <Icon size={16} />
               {isOpen ? <span>{item.label}</span> : null}
             </NavLink>
+            </motion.div>
           );
         })}
-      </nav>
+      </motion.nav>
 
       <button
         type="button"
@@ -92,6 +111,6 @@ export default function Sidebar({ isOpen, onToggle }) {
         <LogOut size={16} />
         {isOpen ? "Logout" : null}
       </button>
-    </aside>
+    </motion.aside>
   );
 }

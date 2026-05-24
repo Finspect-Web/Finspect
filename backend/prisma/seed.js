@@ -1,5 +1,6 @@
 require("dotenv").config();
 const bcrypt = require("bcryptjs");
+const { encryptText } = require("../src/utils/crypto");
 const { PrismaClient, Role, TaskStatus, Priority, InvoiceStatus, PaymentMethod, ComplianceStatus, RecurrenceType, DocumentCategory, TicketPriority, TicketStatus } = require("@prisma/client");
 
 const prisma = new PrismaClient();
@@ -307,7 +308,7 @@ async function main() {
       data: {
         serviceName: cr.service,
         username: cr.username,
-        password: cr.password,
+        password: encryptText(cr.password),
         clientId: clients[cr.clientIdx].id
       }
     });

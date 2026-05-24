@@ -4,6 +4,7 @@ const cors = require("cors");
 const routes = require("./routes");
 const documentRoutes = require("./routes/documents.routes");
 const authRoutes = require("./routes/auth.routes");
+const googleCalendarRoutes = require("./routes/googleCalendar.routes");
 const { notFound, errorHandler } = require("./middleware/error.middleware");
 const { authenticate } = require("./middleware/auth.middleware");
 const { searchGlobal } = require("./services/search.service");
@@ -45,6 +46,10 @@ app.get("/api/search", async (req, res, next) => {
 
 // Public auth endpoints (login/register) - mount before authentication
 app.use("/api/auth", authRoutes);
+
+// Google Calendar OAuth callback needs to be accessible via redirect
+// The OAuth routes are mounted under /api but the callback is authenticated via the redirect
+app.use("/api", googleCalendarRoutes);
 
 // Authenticated endpoints
 app.use("/api/documents", authenticate, documentRoutes);
