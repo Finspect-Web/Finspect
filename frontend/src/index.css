@@ -6,14 +6,19 @@
 
 @layer base {
   html {
-    @apply h-full;
+    @apply m-0 h-full p-0;
     font-size: 14px;
   }
 
   body {
-    @apply m-0 h-full bg-slate-50 text-slate-800 antialiased dark:bg-slate-950 dark:text-slate-100;
+    @apply m-0 h-full bg-slate-50 p-0 text-slate-800 antialiased dark:bg-slate-950 dark:text-slate-100;
     font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
     letter-spacing: 0.005em;
+  }
+
+  /* Prevent background scroll when modal is open */
+  body.modal-open {
+    overflow: hidden;
   }
 
   #root {

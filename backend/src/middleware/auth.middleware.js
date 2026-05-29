@@ -26,11 +26,15 @@ async function authenticate(req, res, next) {
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
-      select: { id: true, email: true, role: true, name: true }
+      select: { id: true, email: true, role: true, name: true, isActive: true }
     });
 
     if (!user) {
       return next(new AppError("User not found for provided token.", 401));
+    }
+
+    if (!user.isActive) {
+      return next(new AppError("Account has been disabled. Please contact administrator.", 403));
     }
 
     req.user = user;

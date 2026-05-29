@@ -11,6 +11,7 @@ import DashboardPage from "./pages/DashboardPage";
 import AttendancePage from "./pages/AttendancePage";
 import LoginPage from "./pages/LoginPage";
 import ReportsPage from "./pages/ReportsPage";
+import UserManagementPage from "./pages/UserManagementPage";
 import SettingsPage from "./pages/SettingsPage";
 import TasksPage from "./pages/TasksPage";
 import TimesheetsPage from "./pages/TimesheetsPage";
@@ -56,6 +57,15 @@ export default function App() {
         <Route path="/credentials" element={<Navigate to="/clients" replace />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/settings/users" element={<UserManagementPage />} />
+      </Route>
+
+      <Route path="/settings/users" element={
+        <ProtectedRoute allowedRoles={["ADMIN"]}>
+          <AppLayout />
+        </ProtectedRoute>
+      }>
+        <Route index element={<UserManagementPage />} />
       </Route>
 
       <Route path="*" element={<NotFound />} />

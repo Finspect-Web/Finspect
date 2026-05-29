@@ -165,7 +165,8 @@ async function main() {
       name: adminName,
       email: adminEmail,
       password: await bcrypt.hash(adminPassword, 12),
-      role: Role.ADMIN
+      role: Role.ADMIN,
+      isActive: true
     }
   });
   console.log(`✅ Admin user: ${admin.name} (${admin.email})`);
@@ -177,7 +178,9 @@ async function main() {
       name: STAFF_SEED.name,
       email: STAFF_SEED.email,
       password: await bcrypt.hash(STAFF_SEED.password, 12),
-      role: Role.STAFF
+      role: Role.STAFF,
+      isActive: true,
+      createdById: admin.id
     }
   });
   console.log(`✅ Staff user: ${staff.name} (${staff.email})`);

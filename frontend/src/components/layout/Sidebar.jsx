@@ -26,6 +26,7 @@ const navItems = [
   { to: "/calendar", label: "Calendar", icon: Calendar },
   { to: "/billing", label: "Billing", icon: BadgeIndianRupee },
   { to: "/reports", label: "Reports", icon: Users },
+  { to: "/settings/users", label: "Users", icon: Users, role: "ADMIN" },
   { to: "/settings", label: "Settings", icon: Settings }
 ];
 
@@ -81,6 +82,7 @@ export default function Sidebar({ isOpen, onToggle }) {
             >
             <NavLink
               to={item.to}
+              end={item.to === "/settings"}
               className={({ isActive }) =>
                 `flex items-center rounded-xl py-2.5 text-[13px] font-medium transition ${
                   isOpen ? "gap-3 px-3" : "justify-center px-2"

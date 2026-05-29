@@ -89,6 +89,11 @@ enum ActivityAction {
   TICKET_CREATED
   TICKET_UPDATED
   TICKET_RESOLVED
+  USER_UPDATED
+  PASSWORD_RESET
+  USER_DISABLED
+  USER_ENABLED
+  USER_DELETED
 }
 
 enum TicketPriority {
@@ -124,7 +129,17 @@ model User {
   email                   String           @unique
   password                String
   role                    Role             @default(STAFF)
+  isActive                Boolean          @default(true)
   createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
+  createdById             String?          @db.Uuid
+
+  // Self-relation: who created this user (admin creates staff)
+  createdBy               User?            @relation("UserCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdUsers            User[]           @relation("UserCreatedBy")
+
+  // Track if the user has been soft-deleted
+  deletedAt               DateTime?
 
   // Google Calendar integration fields
   googleAccessToken       String?
@@ -150,6 +165,8 @@ model User {
   attendances             Attendance[]
   timesheetEntries        TimesheetEntry[]
   calendarEvents          CalendarEvent[]
+
+  @@index([createdById])
 }
 
 model Client {

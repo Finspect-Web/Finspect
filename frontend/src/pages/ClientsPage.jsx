@@ -1,5 +1,6 @@
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import PageTransition from "../components/PageTransition";
 import { Link } from "react-router-dom";
 import { createClient, deleteClient, getClients, updateClient } from "../api/clientApi";
@@ -219,9 +220,17 @@ export default function ClientsPage() {
         </table>
       </div>
 
-      {openForm ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-6">
-          <div className="w-full max-w-4xl rounded-2xl bg-white p-7 shadow-soft dark:bg-slate-900">
+      {openForm ? createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6">
+          <div className="relative w-full max-w-4xl rounded-2xl bg-white p-7 shadow-soft dark:bg-slate-900">
+            <button
+              type="button"
+              onClick={() => setOpenForm(false)}
+              className="absolute right-5 top-5 rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+              aria-label="Close modal"
+            >
+              <X size={18} />
+            </button>
             <h2 className="text-xl font-bold">{currentClient ? "Edit Client" : "Add Client"}</h2>
             <form className="mt-5 grid gap-4 sm:grid-cols-2" onSubmit={onSubmit}>
               {Object.entries(form).map(([key, value]) => {
@@ -271,7 +280,8 @@ export default function ClientsPage() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       ) : null}
     </PageTransition>
   );

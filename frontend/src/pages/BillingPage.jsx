@@ -1,5 +1,6 @@
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import PageTransition from "../components/PageTransition";
 import { getClients } from "../api/clientApi";
 import { addInvoicePayment, createInvoice, deleteInvoice, getInvoices } from "../api/invoiceApi";
@@ -243,9 +244,17 @@ export default function BillingPage() {
         </table>
       </div>
 
-      {openInvoiceForm ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-          <div className="w-full max-w-5xl rounded-2xl bg-white p-6 shadow-soft dark:bg-slate-900">
+      {openInvoiceForm ? createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="relative w-full max-w-5xl rounded-2xl bg-white p-6 shadow-soft dark:bg-slate-900">
+            <button
+              type="button"
+              onClick={() => setOpenInvoiceForm(false)}
+              className="absolute right-5 top-5 rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+              aria-label="Close modal"
+            >
+              <X size={18} />
+            </button>
             <h2 className="text-xl font-bold">Create Invoice</h2>
             <form className="mt-4 grid gap-3 md:grid-cols-2" onSubmit={onCreateInvoice}>
               <label>
@@ -346,12 +355,21 @@ export default function BillingPage() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       ) : null}
 
-      {paymentInvoice ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-soft dark:bg-slate-900">
+      {paymentInvoice ? createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="relative w-full max-w-2xl rounded-2xl bg-white p-6 shadow-soft dark:bg-slate-900">
+            <button
+              type="button"
+              onClick={() => setPaymentInvoice(null)}
+              className="absolute right-5 top-5 rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+              aria-label="Close modal"
+            >
+              <X size={18} />
+            </button>
             <h2 className="text-xl font-bold">Record Payment</h2>
             <p className="mt-1 text-sm text-slate-500">Invoice: {paymentInvoice.invoiceNumber}</p>
             <form className="mt-4 grid gap-3" onSubmit={onSubmitPayment}>
@@ -422,7 +440,8 @@ export default function BillingPage() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       ) : null}
     </PageTransition>
   );

@@ -542,20 +542,11 @@ export default function ClientDetailPage() {
 
       {isPasswordModalOpen ? (
         <Modal onClose={closePasswordModal}>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                {editingCredentialId ? "Edit Password" : "Add Password"}
-              </h2>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Keep it simple and update only what matters.</p>
-            </div>
-            <button
-              type="button"
-              onClick={closePasswordModal}
-              className="rounded-lg border border-slate-200 px-2.5 py-1 text-sm text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
-            >
-              Close
-            </button>
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+              {editingCredentialId ? "Edit Password" : "Add Password"}
+            </h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Keep it simple and update only what matters.</p>
           </div>
 
           <form className="mt-5 grid gap-3 sm:grid-cols-2" onSubmit={submitCredential}>
@@ -639,18 +630,9 @@ export default function ClientDetailPage() {
 
       {isDocumentModalOpen ? (
         <Modal onClose={closeDocumentModal}>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Upload Document</h2>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Attach a file and keep the layout compact.</p>
-            </div>
-            <button
-              type="button"
-              onClick={closeDocumentModal}
-              className="rounded-lg border border-slate-200 px-2.5 py-1 text-sm text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
-            >
-              Close
-            </button>
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Upload Document</h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Attach a file and keep the layout compact.</p>
           </div>
 
           <form className="mt-5 grid gap-3 sm:grid-cols-2" onSubmit={submitDocument}>

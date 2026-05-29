@@ -1,8 +1,11 @@
 /**
  * End-to-end auth flow verification script.
- * Starts the server, tests login/signup/auth endpoints, then shuts down.
+ * Tests the Jamku-style user management authentication flow:
+ * - Only login is public (no signup)
+ * - Admin can create/manage users
+ * - isActive check at login
+ * - Role-based access control
  */
-
 const { spawn } = require("child_process");
 const http = require("http");
 
@@ -95,7 +98,7 @@ function killServer() {
 }
 
 async function run() {
-  console.log("=== Finspect Auth Flow Verification ===\n");
+  console.log("=== Finspect Auth Flow Verification (Jamku-Style) ===\n");
 
   // --- Start server ---
   console.log("1. Starting server...");
@@ -115,6 +118,7 @@ async function run() {
   }
 
   // --- Test 2: Login with valid admin ---
+  let adminToken = null;
   try {
     const login = await httpRequest("POST", "/api/auth/login", {
       email: "admin@finspect.com",
@@ -126,75 +130,246 @@ async function run() {
       pass: ok,
       detail: ok ? `Token received, user: ${login.body.data.user.name} (${login.body.data.user.role})` : `Got ${login.status}: ${JSON.stringify(login.body)}`
     });
-    if (ok) {
-      const adminToken = login.body.data.token;
-
-      // --- Test 3: Login with valid staff ---
-      try {
-        const staffLogin = await httpRequest("POST", "/api/auth/login", {
-          email: "staff@finspect.com",
-          password: "Staff@123"
-        });
-        const sOk = staffLogin.status === 200 && staffLogin.body.success && staffLogin.body.data.token;
-        results.push({
-          test: "Login (valid staff)",
-          pass: sOk,
-          detail: sOk ? `Token received, user: ${staffLogin.body.data.user.name} (${staffLogin.body.data.user.role})` : `Got ${staffLogin.status}`
-        });
-      } catch (e) {
-        results.push({ test: "Login (valid staff)", pass: false, detail: e.message });
-      }
-
-      // --- Test 4: Authenticated endpoint with valid token ---
-      try {
-        const me = await httpRequest("GET", "/api/users", null, adminToken);
-        const mOk = me.status === 200;
-        results.push({
-          test: "Auth endpoint (valid token)",
-          pass: mOk,
-          detail: mOk ? `Got ${me.status} — user list returned with ${me.body.data?.length || '?'} users` : `Got ${me.status}: ${JSON.stringify(me.body)}`
-        });
-      } catch (e) {
-        results.push({ test: "Auth endpoint (valid token)", pass: false, detail: e.message });
-      }
-
-      // --- Test 5: Authenticated endpoint without token ---
-      try {
-        const noAuth = await httpRequest("GET", "/api/users");
-        const nOk = noAuth.status === 401;
-        results.push({
-          test: "Auth endpoint (no token)",
-          pass: nOk,
-          detail: nOk ? `Got 401 as expected` : `Expected 401, got ${noAuth.status}`
-        });
-      } catch (e) {
-        results.push({ test: "Auth endpoint (no token)", pass: false, detail: e.message });
-      }
-
-      // --- Test 6: Authenticated endpoint with invalid token ---
-      try {
-        const badToken = await httpRequest("GET", "/api/users", null, "invalid-token-here");
-        const bOk = badToken.status === 401;
-        results.push({
-          test: "Auth endpoint (invalid token)",
-          pass: bOk,
-          detail: bOk ? `Got 401 as expected` : `Expected 401, got ${badToken.status}`
-        });
-      } catch (e) {
-        results.push({ test: "Auth endpoint (invalid token)", pass: false, detail: e.message });
-      }
-    } else {
-      // Login failed, skip dependent tests
-      results.push({ test: "Login (valid staff)", pass: false, detail: "Skipped — admin login failed" });
-      results.push({ test: "Auth endpoint (valid token)", pass: false, detail: "Skipped — admin login failed" });
-      results.push({ test: "Auth endpoint (no token)", pass: false, detail: "Skipped — admin login failed" });
-      results.push({ test: "Auth endpoint (invalid token)", pass: false, detail: "Skipped — admin login failed" });
-    }
+    if (ok) adminToken = login.body.data.token;
   } catch (e) {
     results.push({ test: "Login (valid admin)", pass: false, detail: e.message });
   }
 
-  // --- Test 7: Login with wrong password ---
+  // --- Test 3: Login with valid staff ---
+  let staffToken = null;
+  try {
+    const staffLogin = await httpRequest("POST", "/api/auth/login", {
+      email: "staff@finspect.com",
+      password: "Staff@123"
+    });
+    const sOk = staffLogin.status === 200 && staffLogin.body.success && staffLogin.body.data.token;
+    results.push({
+      test: "Login (valid staff)",
+      pass: sOk,
+      detail: sOk ? `Token received, user: ${staffLogin.body.data.user.name} (${staffLogin.body.data.user.role})` : `Got ${staffLogin.status}`
+    });
+    if (sOk) staffToken = staffLogin.body.data.token;
+  } catch (e) {
+    results.push({ test: "Login (valid staff)", pass: false, detail: e.message });
+  }
+
+  // --- Test 4: Public signup should be DISABLED ---
+  try {
+    const signup = await httpRequest("POST", "/api/auth/signup", {
+      name: "Should Fail",
+      email: "should-not-work@finspect.com",
+      password: "Test@123",
+      role: "STAFF"
+    });
+    // Expect 401 or 404 — route removed, falls through to authenticated middleware
+    const ok = signup.status === 401 || signup.status === 404;
+    results.push({
+      test: "Public signup disabled (route removed)",
+      pass: ok,
+      detail: ok ? `Got ${signup.status} — signup is disabled (expected 401 or 404)` : `Expected 401/404, got ${signup.status}`
+    });
+  } catch (e) {
+    results.push({ test: "Public signup disabled (route removed)", pass: false, detail: e.message });
+  }
+
+  // --- Proceed with tests that require admin auth ---
+  if (!adminToken) {
+    results.push({ test: "Admin creates user via /users", pass: false, detail: "Skipped — no admin token" });
+    results.push({ test: "Admin lists all users", pass: false, detail: "Skipped — no admin token" });
+    results.push({ test: "Staff cannot access admin endpoints", pass: false, detail: "Skipped — no admin token" });
+    results.push({ test: "Admin deactivates a user", pass: false, detail: "Skipped — no admin token" });
+    results.push({ test: "Disabled user login fails", pass: false, detail: "Skipped — no admin token" });
+    results.push({ test: "Admin activates a user", pass: false, detail: "Skipped — no admin token" });
+    results.push({ test: "Admin resets user password", pass: false, detail: "Skipped — no admin token" });
+    results.push({ test: "Auth endpoint (no token)", pass: false, detail: "Skipped — no admin token" });
+    results.push({ test: "Auth endpoint (invalid token)", pass: false, detail: "Skipped — no admin token" });
+  } else {
+    const uniqueEmail = `staff_${Date.now()}@finspect.com`;
+    let createdUserId = null;
+
+    // --- Test 5: Admin creates a user via POST /users ---
+    try {
+      const createUser = await httpRequest("POST", "/api/users", {
+        name: "Test Staff Member",
+        email: uniqueEmail,
+        password: "StaffPass@123",
+        role: "STAFF"
+      }, adminToken);
+      const cOk = createUser.status === 201 && createUser.body.success;
+      results.push({
+        test: "Admin creates user via /users",
+        pass: cOk,
+        detail: cOk ? `User created: ${createUser.body.data.name} (${createUser.body.data.role}, active: ${createUser.body.data.isActive})` : `Got ${createUser.status}: ${JSON.stringify(createUser.body)}`
+      });
+      if (cOk) createdUserId = createUser.body.data.id;
+    } catch (e) {
+      results.push({ test: "Admin creates user via /users", pass: false, detail: e.message });
+    }
+
+    // --- Test 6: Admin lists all users (including creator info) ---
+    try {
+      const userList = await httpRequest("GET", "/api/users", null, adminToken);
+      const uOk = userList.status === 200 && Array.isArray(userList.body.data);
+      results.push({
+        test: "Admin lists all users",
+        pass: uOk,
+        detail: uOk ? `Got ${userList.body.data.length} users — includes createdBy info` : `Got ${userList.status}`
+      });
+      if (uOk && userList.body.data.length > 0) {
+        const firstUser = userList.body.data[0];
+        if (firstUser.createdBy) {
+          console.log(`   ℹ️  Creator tracking: "${firstUser.name}" created by ${firstUser.createdBy.name}`);
+        }
+        if (firstUser.isActive !== undefined) {
+          console.log(`   ℹ️  Status tracking: "${firstUser.name}" isActive=${firstUser.isActive}`);
+        }
+      }
+    } catch (e) {
+      results.push({ test: "Admin lists all users", pass: false, detail: e.message });
+    }
+
+    // --- Test 7: Staff cannot access admin-only endpoints ---
+    if (staffToken) {
+      try {
+        const staffAccess = await httpRequest("GET", "/api/users", null, staffToken);
+        const sOk = staffAccess.status === 403;
+        results.push({
+          test: "Staff cannot access admin endpoints",
+          pass: sOk,
+          detail: sOk ? `Got 403 as expected — staff blocked from admin endpoint` : `Expected 403, got ${staffAccess.status}`
+        });
+      } catch (e) {
+        results.push({ test: "Staff cannot access admin endpoints", pass: false, detail: e.message });
+      }
+    } else {
+      results.push({ test: "Staff cannot access admin endpoints", pass: false, detail: "Skipped — no staff token" });
+    }
+
+    // --- Test 8: Admin deactivates a user ---
+    if (createdUserId) {
+      try {
+        const deactivate = await httpRequest("PATCH", `/api/users/${createdUserId}/deactivate`, null, adminToken);
+        const dOk = deactivate.status === 200 && deactivate.body.success;
+        results.push({
+          test: "Admin deactivates user",
+          pass: dOk,
+          detail: dOk ? `User deactivated: ${deactivate.body.message}` : `Got ${deactivate.status}: ${JSON.stringify(deactivate.body)}`
+        });
+      } catch (e) {
+        results.push({ test: "Admin deactivates user", pass: false, detail: e.message });
+      }
+
+      // --- Test 9: Disabled user login fails ---
+      try {
+        const disabledLogin = await httpRequest("POST", "/api/auth/login", {
+          email: uniqueEmail,
+          password: "StaffPass@123"
+        });
+        const lOk = disabledLogin.status === 403;
+        results.push({
+          test: "Disabled user login fails",
+          pass: lOk,
+          detail: lOk ? `Got 403 as expected — "Account has been disabled"` : `Expected 403, got ${disabledLogin.status}: ${JSON.stringify(disabledLogin.body)}`
+        });
+      } catch (e) {
+        results.push({ test: "Disabled user login fails", pass: false, detail: e.message });
+      }
+
+      // --- Test 10: Admin activates the user again ---
+      try {
+        const activate = await httpRequest("PATCH", `/api/users/${createdUserId}/activate`, null, adminToken);
+        const aOk = activate.status === 200 && activate.body.success;
+        results.push({
+          test: "Admin activates user",
+          pass: aOk,
+          detail: aOk ? `User activated: ${activate.body.message}` : `Got ${activate.status}: ${JSON.stringify(activate.body)}`
+        });
+      } catch (e) {
+        results.push({ test: "Admin activates user", pass: false, detail: e.message });
+      }
+
+      // --- Test 11: Admin resets user password ---
+      try {
+        const reset = await httpRequest("PATCH", `/api/users/${createdUserId}/reset-password`, {
+          password: "NewPass@456"
+        }, adminToken);
+        const rOk = reset.status === 200 && reset.body.success;
+        results.push({
+          test: "Admin resets user password",
+          pass: rOk,
+          detail: rOk ? `Password reset: ${reset.body.message}` : `Got ${reset.status}: ${JSON.stringify(reset.body)}`
+        });
+      } catch (e) {
+        results.push({ test: "Admin resets user password", pass: false, detail: e.message });
+      }
+
+      // --- Test 12: User can login with new password ---
+      try {
+        const newLogin = await httpRequest("POST", "/api/auth/login", {
+          email: uniqueEmail,
+          password: "NewPass@456"
+        });
+        const nOk = newLogin.status === 200 && newLogin.body.success && newLogin.body.data.token;
+        results.push({
+          test: "Login with new password after reset",
+          pass: nOk,
+          detail: nOk ? `Login successful with new password` : `Got ${newLogin.status}: ${JSON.stringify(newLogin.body)}`
+        });
+      } catch (e) {
+        results.push({ test: "Login with new password after reset", pass: false, detail: e.message });
+      }
+
+      // --- Test 13: Admin updates user details ---
+      try {
+        const update = await httpRequest("PUT", `/api/users/${createdUserId}`, {
+          name: "Test Staff Updated"
+        }, adminToken);
+        const uOk = update.status === 200 && update.body.success;
+        results.push({
+          test: "Admin updates user details",
+          pass: uOk,
+          detail: uOk ? `User updated: ${update.body.data.name}` : `Got ${update.status}: ${JSON.stringify(update.body)}`
+        });
+      } catch (e) {
+        results.push({ test: "Admin updates user details", pass: false, detail: e.message });
+      }
+    } else {
+      results.push({ test: "Admin deactivates user", pass: false, detail: "Skipped — user creation failed" });
+      results.push({ test: "Disabled user login fails", pass: false, detail: "Skipped — user creation failed" });
+      results.push({ test: "Admin activates user", pass: false, detail: "Skipped — user creation failed" });
+      results.push({ test: "Admin resets user password", pass: false, detail: "Skipped — user creation failed" });
+      results.push({ test: "Login with new password after reset", pass: false, detail: "Skipped — user creation failed" });
+      results.push({ test: "Admin updates user details", pass: false, detail: "Skipped — user creation failed" });
+    }
+
+    // --- Test 14: Authenticated endpoint without token ---
+    try {
+      const noAuth = await httpRequest("GET", "/api/users");
+      const nOk = noAuth.status === 401;
+      results.push({
+        test: "Auth endpoint (no token)",
+        pass: nOk,
+        detail: nOk ? `Got 401 as expected` : `Expected 401, got ${noAuth.status}`
+      });
+    } catch (e) {
+      results.push({ test: "Auth endpoint (no token)", pass: false, detail: e.message });
+    }
+
+    // --- Test 15: Authenticated endpoint with invalid token ---
+    try {
+      const badToken = await httpRequest("GET", "/api/users", null, "invalid-token-here");
+      const bOk = badToken.status === 401;
+      results.push({
+        test: "Auth endpoint (invalid token)",
+        pass: bOk,
+        detail: bOk ? `Got 401 as expected` : `Expected 401, got ${badToken.status}`
+      });
+    } catch (e) {
+      results.push({ test: "Auth endpoint (invalid token)", pass: false, detail: e.message });
+    }
+  }
+
+  // --- Test 16: Login with wrong password ---
   try {
     const badLogin = await httpRequest("POST", "/api/auth/login", {
       email: "admin@finspect.com",
@@ -210,55 +385,20 @@ async function run() {
     results.push({ test: "Login (wrong password)", pass: false, detail: e.message });
   }
 
-  const uniqueEmail = `testuser_${Date.now()}@finspect.com`;
-
-  // --- Test 8: Signup new user ---
+  // --- Test 17: Login with non-existent user ---
   try {
-    const signup = await httpRequest("POST", "/api/auth/signup", {
-      name: "Test New User",
-      email: uniqueEmail,
-      password: "Test@123",
-      role: "STAFF"
+    const nonExist = await httpRequest("POST", "/api/auth/login", {
+      email: "nonexistent@finspect.com",
+      password: "AnyPass123"
     });
-    const sOk = signup.status === 201 && signup.body.success && signup.body.data.token;
+    const nOk = nonExist.status === 401;
     results.push({
-      test: "Signup new user",
-      pass: sOk,
-      detail: sOk ? `User created: ${signup.body.data.user.email} (${signup.body.data.user.role})` : `Got ${signup.status}: ${JSON.stringify(signup.body)}`
+      test: "Login (non-existent user)",
+      pass: nOk,
+      detail: nOk ? `Got 401 as expected` : `Expected 401, got ${nonExist.status}`
     });
   } catch (e) {
-    results.push({ test: "Signup new user", pass: false, detail: e.message });
-  }
-
-  // --- Test 9: Signup duplicate email ---
-  try {
-    const dupSignup = await httpRequest("POST", "/api/auth/signup", {
-      name: "Duplicate",
-      email: "admin@finspect.com",
-      password: "Test@123",
-      role: "STAFF"
-    });
-    const dOk = dupSignup.status === 409;
-    results.push({
-      test: "Signup duplicate email",
-      pass: dOk,
-      detail: dOk ? `Got 409 as expected` : `Expected 409, got ${dupSignup.status}`
-    });
-  } catch (e) {
-    results.push({ test: "Signup duplicate email", pass: false, detail: e.message });
-  }
-
-  // --- Test 10: Signup missing fields ---
-  try {
-    const missing = await httpRequest("POST", "/api/auth/signup", { email: "missing@test.com" });
-    const mOk = missing.status === 400;
-    results.push({
-      test: "Signup missing fields",
-      pass: mOk,
-      detail: mOk ? `Got 400 as expected` : `Expected 400, got ${missing.status}`
-    });
-  } catch (e) {
-    results.push({ test: "Signup missing fields", pass: false, detail: e.message });
+    results.push({ test: "Login (non-existent user)", pass: false, detail: e.message });
   }
 
   // --- Print results ---

@@ -1,14 +1,9 @@
-import { Eye, EyeOff, UserPlus, LogIn, Sparkles, Building2, Shield, Users } from "lucide-react";
+import { Eye, EyeOff, LogIn, Sparkles, Building2, Shield, Users } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import ParticlesBackground from "../components/ParticlesBackground";
 import Loader from "../components/Loader";
-
-const ROLES = [
-  { value: "STAFF", label: "Staff", description: "Manage clients, tasks & day-to-day operations" },
-  { value: "ADMIN", label: "Admin", description: "Full access including user management & settings" }
-];
 
 const TAGLINES = [
   "Enterprise-grade practice management",
@@ -25,16 +20,13 @@ const FEATURES = [
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, register } = useAuth();
-  const [mode, setMode] = useState("signin");
+  const { login } = useAuth();
   const [showAuthLoader, setShowAuthLoader] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", password: "", role: "STAFF" });
+  const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [taglineIdx, setTaglineIdx] = useState(0);
-
-  const isSignUp = mode === "signup";
 
   useEffect(() => {
     // Cycle taglines
@@ -50,16 +42,7 @@ export default function LoginPage() {
     setError("");
 
     try {
-      if (isSignUp) {
-        await register({
-          name: form.name,
-          email: form.email,
-          password: form.password,
-          role: form.role
-        });
-      } else {
-        await login({ email: form.email, password: form.password });
-      }
+      await login({ email: form.email, password: form.password });
 
       // Show loader for ~2s, then navigate to dashboard
       setShowAuthLoader(true);
@@ -69,12 +52,6 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
-
-  const toggleMode = useCallback(() => {
-    setMode((prev) => (prev === "signin" ? "signup" : "signin"));
-    setError("");
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // Navigate to dashboard when the Loader animation completes
   const handleLoaderComplete = useCallback(() => {
@@ -87,11 +64,11 @@ export default function LoginPage() {
 
   return (
     <>
-      {/* Premium loading screen — auto-dismisses via setTimeout above */}
+      {/* Premium loading screen */}
       {showAuthLoader && (
         <Loader
-          isSignUp={isSignUp}
-          userName={isSignUp ? form.name : ""}
+          isSignUp={false}
+          userName=""
           duration={1600}
           onComplete={handleLoaderComplete}
         />
@@ -181,30 +158,13 @@ export default function LoginPage() {
 
         <div className="w-full max-w-sm animate-fade-in-up">
           <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white">
-            {isSignUp ? "Create Account" : "Welcome Back"}
+            Welcome Back
           </h2>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            {isSignUp
-              ? "Fill in your details to get started."
-              : "Sign in to access your dashboard."}
+            Sign in to access your dashboard.
           </p>
 
           <form className="mt-8 space-y-4" onSubmit={onSubmit}>
-            {/* Name field — sign up only */}
-            {isSignUp && (
-              <label className="block">
-                <span className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Full Name</span>
-                <input
-                  required
-                  type="text"
-                  placeholder="e.g. John Doe"
-                  className="w-full px-4 py-2.5"
-                  value={form.name}
-                  onChange={(e) => updateField("name", e.target.value)}
-                />
-              </label>
-            )}
-
             <label className="block">
               <span className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Email</span>
               <input
@@ -238,43 +198,21 @@ export default function LoginPage() {
               </div>
             </label>
 
-            {/* Role selection — sign up only */}
-            {isSignUp && (
-              <fieldset>
-                <span className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">I want to join as</span>
-                <div className="space-y-2">
-                  {ROLES.map((role) => (
-                    <label
-                      key={role.value}
-                      className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3.5 py-2.5 transition ${
-                        form.role === role.value
-                          ? "border-brand-500 bg-brand-50 ring-1 ring-brand-500/30 dark:border-brand-500 dark:bg-brand-900/30"
-                          : "border-slate-200 bg-white hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:border-slate-600"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="role"
-                        value={role.value}
-                        checked={form.role === role.value}
-                        onChange={(e) => updateField("role", e.target.value)}
-                        className="h-4 w-4 accent-brand-500"
-                      />
-                      <div className="flex flex-col">
-                        <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{role.label}</span>
-                        <span className="text-xs text-slate-500 dark:text-slate-400">{role.description}</span>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-            )}
-
             {error && (
               <p className="rounded-lg bg-rose-50 px-3 py-2 text-xs font-medium text-rose-600 dark:bg-rose-900/20 dark:text-rose-400">
                 {error}
               </p>
             )}
+
+            <div className="flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => alert("Please contact your administrator to reset your password.")}
+                className="text-xs font-medium text-slate-500 underline decoration-1 underline-offset-2 transition hover:text-brand-700 hover:decoration-2 dark:text-slate-400 dark:hover:text-brand-400"
+              >
+                Forgot Password?
+              </button>
+            </div>
 
             <button
               type="submit"
@@ -287,13 +225,8 @@ export default function LoginPage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  {isSignUp ? "Creating account..." : "Signing in..."}
+                  Signing in...
                 </span>
-              ) : isSignUp ? (
-                <>
-                  <UserPlus size={16} />
-                  Create Account
-                </>
               ) : (
                 <>
                   <LogIn size={16} />
@@ -302,18 +235,6 @@ export default function LoginPage() {
               )}
             </button>
           </form>
-
-          {/* Toggle between Sign In and Sign Up */}
-          <p className="mt-8 text-center text-sm text-slate-500 dark:text-slate-400">
-            {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
-            <button
-              type="button"
-              onClick={toggleMode}
-              className="font-semibold text-brand-500 hover:text-brand-700 underline decoration-1 underline-offset-2 transition hover:decoration-2"
-            >
-              {isSignUp ? "Sign In" : "Sign Up"}
-            </button>
-          </p>
         </div>
       </section>
     </div>

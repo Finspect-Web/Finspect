@@ -11,10 +11,18 @@ import {
   Rows,
   Square,
   Users,
+  Loader2,
+  Check,
+  X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import PageTransition from "../components/PageTransition";
-import { getGoogleCalendarEvents } from "../api/googleCalendarApi";
+import {
+  getGoogleCalendarEvents,
+  getGoogleAuthUrl,
+  getGoogleCalendarStatus,
+  disconnectGoogleCalendar,
+} from "../api/googleCalendarApi";
 import { getUsers } from "../api/userApi";
 import { useAuth } from "../hooks/useAuth";
 import { formatDate, formatDateTime } from "../utils/date";
@@ -180,6 +188,9 @@ export default function CalendarPage() {
   const [events, setEvents] = useState([]);
   const [totalEvents, setTotalEvents] = useState(0);
   const [googleConnected, setGoogleConnected] = useState(false);
+  const [calendarEmail, setCalendarEmail] = useState(null);
+  const [connecting, setConnecting] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -195,8 +206,36 @@ export default function CalendarPage() {
     if (!isAdmin) return;
     getUsers()
       .then((users) => setStaffUsers(users))
-      .catch(() => {}); // Silently fail — filter just won't show
+      .catch(() => {});
   }, [isAdmin]);
+
+  // Load Google Calendar connect status
+  const loadCalendarStatus = useCallback(async () => {
+    try {
+      const status = await getGoogleCalendarStatus();
+      setGoogleConnected(status.connected);
+      setCalendarEmail(status.email);
+    } catch {
+      // Not connected
+    }
+  }, []);
+
+  useEffect(() => {
+    loadCalendarStatus();
+  }, [loadCalendarStatus]);
+
+  // Handle OAuth callback query params from Google Calendar redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const gcParam = params.get("googleCalendar");
+    if (gcParam === "connected") {
+      loadCalendarStatus();
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (gcParam === "error") {
+      setError(params.get("message") || "Failed to connect Google Calendar.");
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, [loadCalendarStatus]);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -274,6 +313,31 @@ export default function CalendarPage() {
   useEffect(() => {
     loadEvents();
   }, [loadEvents]);
+
+  const handleConnectGoogle = async () => {
+    try {
+      setConnecting(true);
+      const authUrl = await getGoogleAuthUrl();
+      window.location.href = authUrl;
+    } catch (connectError) {
+      setError(connectError.message);
+      setConnecting(false);
+    }
+  };
+
+  const handleDisconnectGoogle = async () => {
+    if (!window.confirm("Disconnect Google Calendar? Events will no longer sync.")) return;
+    try {
+      setDisconnecting(true);
+      await disconnectGoogleCalendar();
+      setGoogleConnected(false);
+      setCalendarEmail(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDisconnecting(false);
+    }
+  };
 
   // Group events by date
   const eventsByDate = useMemo(() => {
@@ -568,9 +632,13 @@ export default function CalendarPage() {
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-black">Calendar</h1>
           {googleConnected ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              Google Sync
+              {calendarEmail ? (
+                <span className="hidden sm:inline">{calendarEmail}</span>
+              ) : (
+                "Google Sync"
+              )}
             </span>
           ) : (
             <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
@@ -580,6 +648,36 @@ export default function CalendarPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          {googleConnected ? (
+            <button
+              type="button"
+              onClick={handleDisconnectGoogle}
+              disabled={disconnecting}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 px-2.5 py-1.5 text-[11px] font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-50 dark:border-rose-800 dark:text-rose-400 dark:hover:bg-rose-900/20"
+              title="Disconnect Google Calendar"
+            >
+              {disconnecting ? (
+                <Loader2 size={12} className="animate-spin" />
+              ) : (
+                <X size={12} />
+              )}
+              Disconnect
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleConnectGoogle}
+              disabled={connecting}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-900 px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-brand-800 disabled:opacity-50"
+            >
+              {connecting ? (
+                <Loader2 size={12} className="animate-spin" />
+              ) : (
+                <ExternalLink size={12} />
+              )}
+              Connect Google Calendar
+            </button>
+          )}
           <span className="text-xs text-slate-400">{totalEvents} events</span>
           <button
             type="button"

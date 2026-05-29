@@ -1,6 +1,6 @@
 import { createContext, useEffect, useMemo, useState } from "react";
 import { AUTH_SESSION_EXPIRED_EVENT } from "../api/axios";
-import { loginRequest, signupRequest } from "../api/authApi";
+import { loginRequest } from "../api/authApi";
 
 export const AuthContext = createContext(null);
 
@@ -49,12 +49,6 @@ export function AuthProvider({ children }) {
     return data.user;
   };
 
-  const register = async (payload) => {
-    const data = await signupRequest(payload);
-    setAuth({ token: data.token, user: data.user });
-    return data.user;
-  };
-
   const logout = () => {
     setAuth({ token: null, user: null });
   };
@@ -65,7 +59,6 @@ export function AuthProvider({ children }) {
       token: auth.token,
       isAuthenticated: Boolean(auth.token && auth.user),
       login,
-      register,
       logout
     }),
     [auth.token, auth.user]
