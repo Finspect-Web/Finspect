@@ -42,8 +42,8 @@ envVarGroups:
       - key: PORT
         value: "10000"
       - key: FRONTEND_URL
-        value: https://finspect.vercel.app
-        comment: "Update this to your actual Vercel domain after deploying frontend"
+        value: https://finspect-app.vercel.app
+        comment: "Vercel frontend URL — used for CORS, update if domain changes"
 
   - name: finspect-database
     envVars:
