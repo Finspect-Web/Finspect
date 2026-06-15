@@ -62,8 +62,15 @@ async function loginUser(payload) {
     throw new AppError("Account has been disabled. Please contact administrator.", 403);
   }
 
+  // [DEBUG] Log bcrypt comparison details (remove after debugging)
+  console.log("[DEBUG] bcrypt.compare input password:", password);
+  console.log("[DEBUG] bcrypt.compare stored hash:", user.password);
   const isPasswordValid = await bcrypt.compare(password, user.password);
+  console.log("[DEBUG] bcrypt.compare result:", isPasswordValid);
   if (!isPasswordValid) {
+    // Log hash prefix and user info for debugging without exposing the full hash
+    console.log("[DEBUG] Password mismatch for:", user.email);
+    console.log("[DEBUG] Stored hash prefix:", user.password.substring(0, 20) + "...");
     throw new AppError("Invalid credentials.", 401);
   }
 

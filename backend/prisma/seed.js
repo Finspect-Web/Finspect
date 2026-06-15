@@ -158,26 +158,36 @@ async function main() {
     throw new Error("SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD are required for seeding.");
   }
 
+  const adminHash = await bcrypt.hash(adminPassword, 12);
   const admin = await prisma.user.upsert({
     where: { email: adminEmail },
-    update: {},
+    update: {
+      name: adminName,
+      password: adminHash,
+      isActive: true
+    },
     create: {
       name: adminName,
       email: adminEmail,
-      password: await bcrypt.hash(adminPassword, 12),
+      password: adminHash,
       role: Role.ADMIN,
       isActive: true
     }
   });
   console.log(`✅ Admin user: ${admin.name} (${admin.email})`);
 
+  const staffHash = await bcrypt.hash(STAFF_SEED.password, 12);
   const staff = await prisma.user.upsert({
     where: { email: STAFF_SEED.email },
-    update: {},
+    update: {
+      name: STAFF_SEED.name,
+      password: staffHash,
+      isActive: true
+    },
     create: {
       name: STAFF_SEED.name,
       email: STAFF_SEED.email,
-      password: await bcrypt.hash(STAFF_SEED.password, 12),
+      password: staffHash,
       role: Role.STAFF,
       isActive: true,
       createdById: admin.id
