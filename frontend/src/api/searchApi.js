@@ -1,7 +1,7 @@
 import api from "./axios";
 
 export async function searchGlobal(query) {
-  const response = await api.get("/search", {
+  const response = await api.get("/api/search", {
     params: {
       q: query
     }
