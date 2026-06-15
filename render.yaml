@@ -1,0 +1,109 @@
+# ===========================================================================
+# Render Blueprint — Finspect Backend
+# ===========================================================================
+# Deploy by pushing to your connected Git repo OR use Render Dashboard:
+#   Dashboard → Blueprint → Connect repo → render.yaml is auto-detected.
+#
+# After first deploy, set the actual env variable values via Dashboard:
+#   Dashboard → finspect-api → Environment → add DATABASE_URL, JWT_SECRET, etc.
+# Then manually trigger a deploy.
+#
+# Services requiring user-provided secrets are listed under envVarGroups
+# with "sync: false" — they won't block initial deploy but values must
+# be set before the app runs correctly.
+# ===========================================================================
+
+services:
+  - type: web
+    name: finspect-api
+    env: node
+    region: oregon  # or ohio, frankfurt, singapore, etc.
+    plan: free      # upgrade to starter ($7/mo) to prevent spin-down
+    rootDir: backend
+    buildCommand: npm install && npx prisma generate
+    preDeployCommand: npx prisma migrate deploy
+    startCommand: node src/server.js
+    healthCheckPath: /health
+    autoDeploy: true
+    envVarGroups:
+      - name: finspect-server
+      - name: finspect-database
+      - name: finspect-auth
+      - name: finspect-google-calendar
+      - name: finspect-email
+      - name: finspect-twilio
+      - name: finspect-seed
+
+envVarGroups:
+  - name: finspect-server
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: FRONTEND_URL
+        value: https://finspect.vercel.app
+        comment: "Update this to your actual Vercel domain after deploying frontend"
+
+  - name: finspect-database
+    envVars:
+      - key: USE_DUMMY_AUTH
+        value: "false"
+      - key: DATABASE_URL
+        sync: false
+        comment: "From Neon Dashboard → Connect → Prisma. Must include ?sslmode=require"
+
+  - name: finspect-auth
+    envVars:
+      - key: JWT_SECRET
+        sync: false
+        comment: "Generate: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\""
+      - key: JWT_EXPIRES_IN
+        value: 1d
+      - key: CREDENTIAL_SECRET
+        sync: false
+        comment: "Generate: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\""
+
+  - name: finspect-google-calendar
+    envVars:
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        value: https://finspect-api.onrender.com/api/auth/google/callback
+
+  - name: finspect-email
+    envVars:
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+
+  - name: finspect-twilio
+    envVars:
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_WHATSAPP_FROM
+        sync: false
+      - key: TWILIO_WHATSAPP_TO
+        sync: false
+
+  - name: finspect-seed
+    envVars:
+      - key: SEED_ADMIN_NAME
+        value: Finspect Admin
+      - key: SEED_ADMIN_EMAIL
+        sync: false
+        comment: "Required only if running npx prisma db seed"
+      - key: SEED_ADMIN_PASSWORD
+        sync: false
+        comment: "Required only if running npx prisma db seed"
