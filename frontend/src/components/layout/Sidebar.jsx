@@ -1,4 +1,5 @@
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
+import logo from "../../assets/logo.png";
 import {
   BadgeIndianRupee,
   Calendar,
@@ -47,8 +48,45 @@ export default function Sidebar({ isOpen, onToggle }) {
       <div className={`mb-6 ${isOpen ? "px-3" : "px-0"}`}>
         <div className={`flex ${isOpen ? "items-start justify-between" : "flex-col items-center gap-2"}`}>
           <div className={isOpen ? "" : "text-center"}>
-            <p className="text-xl font-extrabold tracking-tight text-brand-700">{isOpen ? "Finspect" : "F"}</p>
-            {isOpen ? <p className="text-xs text-slate-500 dark:text-slate-400">Practice Management Suite</p> : null}
+            <AnimatePresence mode="wait">
+              {isOpen ? (
+                <motion.p
+                  key="brand-text"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+                  className="text-xl font-extrabold tracking-tight text-brand-700"
+                >
+                  Finspect
+                </motion.p>
+              ) : (
+                <motion.img
+                  key="brand-logo"
+                  src={logo}
+                  alt="Finspect"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+                  className="h-9 w-9 rounded-lg object-contain"
+                />
+              )}
+            </AnimatePresence>
+            <AnimatePresence mode="wait">
+              {isOpen ? (
+                <motion.p
+                  key="subtitle"
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.15, delay: 0.05 }}
+                  className="text-xs text-slate-500 dark:text-slate-400"
+                >
+                  Practice Management Suite
+                </motion.p>
+              ) : null}
+            </AnimatePresence>
           </div>
           <button
             type="button"
