@@ -24,6 +24,7 @@ import {
   disconnectGoogleCalendar,
 } from "../api/googleCalendarApi";
 import { getUsers } from "../api/userApi";
+import ConfirmModal from "../components/ConfirmModal";
 import { useAuth } from "../hooks/useAuth";
 import { formatDate, formatDateTime } from "../utils/date";
 
@@ -325,10 +326,14 @@ export default function CalendarPage() {
     }
   };
 
-  const handleDisconnectGoogle = async () => {
-    if (!window.confirm("Disconnect Google Calendar? Events will no longer sync.")) return;
+  const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
+
+  const handleDisconnectGoogle = () => setShowDisconnectConfirm(true);
+
+  const handleConfirmDisconnect = async () => {
     try {
       setDisconnecting(true);
+      setShowDisconnectConfirm(false);
       await disconnectGoogleCalendar();
       setGoogleConnected(false);
       setCalendarEmail(null);
@@ -952,6 +957,16 @@ export default function CalendarPage() {
           )}
         </AnimatePresence>
       </div>
+
+      <ConfirmModal
+        isOpen={showDisconnectConfirm}
+        title="Disconnect Google Calendar"
+        message="Are you sure you want to disconnect Google Calendar? Events will no longer sync between Google Calendar and Finspect."
+        confirmText="Disconnect"
+        confirmVariant="danger"
+        onConfirm={handleConfirmDisconnect}
+        onCancel={() => setShowDisconnectConfirm(false)}
+      />
     </PageTransition>
   );
 }

@@ -4,6 +4,7 @@ import PageTransition from "../components/PageTransition";
 import { getClients } from "../api/clientApi";
 import { createCompliance, deleteCompliance, getComplianceTypes, getCompliances, updateCompliance } from "../api/complianceApi";
 import { getUsers } from "../api/userApi";
+import ConfirmModal from "../components/ConfirmModal";
 import { useAuth } from "../hooks/useAuth";
 import { formatDate } from "../utils/date";
 
@@ -162,13 +163,19 @@ export default function CompliancePage() {
     }
   };
 
-  const onDelete = async (id) => {
-    if (!window.confirm("Delete this compliance item?")) return;
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+
+  const onDelete = (id) => setConfirmDeleteId(id);
+
+  const handleConfirmDelete = async () => {
+    if (!confirmDeleteId) return;
     try {
-      await deleteCompliance(id);
+      await deleteCompliance(confirmDeleteId);
+      setConfirmDeleteId(null);
       await loadData();
     } catch (deleteError) {
       setError(deleteError.message);
+      setConfirmDeleteId(null);
     }
   };
 
@@ -384,6 +391,15 @@ export default function CompliancePage() {
 
         {filtered.length === 0 ? <p className="text-sm text-slate-500">No compliance items found.</p> : null}
       </section>
+
+      <ConfirmModal
+        isOpen={!!confirmDeleteId}
+        title="Delete Compliance Item"
+        message="Are you sure you want to delete this compliance item? This action cannot be undone."
+        confirmText="Delete"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </PageTransition>
   );
 }

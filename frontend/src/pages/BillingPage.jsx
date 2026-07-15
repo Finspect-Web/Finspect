@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import PageTransition from "../components/PageTransition";
 import { getClients } from "../api/clientApi";
 import { addInvoicePayment, createInvoice, deleteInvoice, getInvoices } from "../api/invoiceApi";
+import ConfirmModal from "../components/ConfirmModal";
 import { useAuth } from "../hooks/useAuth";
 import { formatDate } from "../utils/date";
 
@@ -96,13 +97,19 @@ export default function BillingPage() {
     }
   };
 
-  const onDeleteInvoice = async (invoiceId) => {
-    if (!window.confirm("Delete this invoice?")) return;
+  const [confirmDeleteInvoice, setConfirmDeleteInvoice] = useState(null);
+
+  const onDeleteInvoice = (invoiceId) => setConfirmDeleteInvoice(invoiceId);
+
+  const handleConfirmDeleteInvoice = async () => {
+    if (!confirmDeleteInvoice) return;
     try {
-      await deleteInvoice(invoiceId);
+      await deleteInvoice(confirmDeleteInvoice);
+      setConfirmDeleteInvoice(null);
       await loadData();
     } catch (deleteError) {
       setError(deleteError.message);
+      setConfirmDeleteInvoice(null);
     }
   };
 
@@ -436,6 +443,15 @@ export default function BillingPage() {
         </div>,
         document.body
       ) : null}
+
+      <ConfirmModal
+        isOpen={!!confirmDeleteInvoice}
+        title="Delete Invoice"
+        message="Are you sure you want to delete this invoice? This action cannot be undone."
+        confirmText="Delete"
+        onConfirm={handleConfirmDeleteInvoice}
+        onCancel={() => setConfirmDeleteInvoice(null)}
+      />
     </PageTransition>
   );
 }

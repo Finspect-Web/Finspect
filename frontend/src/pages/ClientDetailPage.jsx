@@ -5,6 +5,7 @@ import PageTransition from "../components/PageTransition";
 import { createCredential, deleteCredential, getCredentialPassword, getCredentials, updateCredential } from "../api/credentialApi";
 import { createDocument, deleteDocument, getDocuments } from "../api/documentApi";
 import { getClientById } from "../api/clientApi";
+import ConfirmModal from "../components/ConfirmModal";
 import Modal from "../components/Modal";
 import { useAuth } from "../hooks/useAuth";
 import { formatDate } from "../utils/date";
@@ -54,6 +55,7 @@ export default function ClientDetailPage() {
   const [editingCredentialId, setEditingCredentialId] = useState(null);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
+  const [confirmState, setConfirmState] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
   const [credentialForm, setCredentialForm] = useState(credentialInitialForm);
   const [documentForm, setDocumentForm] = useState(documentInitialForm);
   const [documentFile, setDocumentFile] = useState(null);
@@ -225,17 +227,24 @@ export default function ClientDetailPage() {
     setActiveTab("passwords");
   };
 
-  const removeCredential = async (credentialId) => {
-    if (!window.confirm("Delete this password?")) return;
-
-    try {
-      await deleteCredential(credentialId);
-      const data = await getCredentials(id);
-      setCredentials(data);
-      setCredentialError("");
-    } catch (deleteError) {
-      setCredentialError(deleteError.message);
-    }
+  const removeCredential = (credentialId) => {
+    setConfirmState({
+      isOpen: true,
+      title: "Delete Password",
+      message: "Are you sure you want to delete this password? This action cannot be undone.",
+      onConfirm: async () => {
+        try {
+          await deleteCredential(credentialId);
+          const data = await getCredentials(id);
+          setCredentials(data);
+          setCredentialError("");
+          setConfirmState((prev) => ({ ...prev, isOpen: false }));
+        } catch (deleteError) {
+          setCredentialError(deleteError.message);
+          setConfirmState((prev) => ({ ...prev, isOpen: false }));
+        }
+      }
+    });
   };
 
   const revealPassword = async (credentialId) => {
@@ -280,17 +289,24 @@ export default function ClientDetailPage() {
     }
   };
 
-  const removeDocument = async (documentId) => {
-    if (!window.confirm("Delete this document?")) return;
-
-    try {
-      await deleteDocument(documentId);
-      const data = await getDocuments(id);
-      setDocuments(data);
-      setDocumentError("");
-    } catch (deleteError) {
-      setDocumentError(deleteError.message);
-    }
+  const removeDocument = (documentId) => {
+    setConfirmState({
+      isOpen: true,
+      title: "Delete Document",
+      message: "Are you sure you want to delete this document? This action cannot be undone.",
+      onConfirm: async () => {
+        try {
+          await deleteDocument(documentId);
+          const data = await getDocuments(id);
+          setDocuments(data);
+          setDocumentError("");
+          setConfirmState((prev) => ({ ...prev, isOpen: false }));
+        } catch (deleteError) {
+          setDocumentError(deleteError.message);
+          setConfirmState((prev) => ({ ...prev, isOpen: false }));
+        }
+      }
+    });
   };
 
   const submitDocument = async (event) => {
@@ -732,6 +748,15 @@ export default function ClientDetailPage() {
           </form>
         </Modal>
       ) : null}
+
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText="Delete"
+        onConfirm={confirmState.onConfirm}
+        onCancel={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
+      />
     </PageTransition>
   );
 }

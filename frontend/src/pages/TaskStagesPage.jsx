@@ -1,6 +1,7 @@
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createTaskStage, deleteTaskStage, getTaskStages, updateTaskStage } from "../api/taskStageApi";
+import ConfirmModal from "../components/ConfirmModal";
 import { useAuth } from "../hooks/useAuth";
 
 const emptyForm = {
@@ -64,13 +65,19 @@ export default function TaskStagesPage() {
     });
   };
 
-  const onDelete = async (id) => {
-    if (!window.confirm("Delete this stage?")) return;
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+
+  const onDelete = (id) => setConfirmDeleteId(id);
+
+  const handleConfirmDelete = async () => {
+    if (!confirmDeleteId) return;
     try {
-      await deleteTaskStage(id);
+      await deleteTaskStage(confirmDeleteId);
+      setConfirmDeleteId(null);
       await loadStages();
     } catch (deleteError) {
       setError(deleteError.message);
+      setConfirmDeleteId(null);
     }
   };
 
@@ -195,6 +202,15 @@ export default function TaskStagesPage() {
           </table>
         </div>
       </section>
+
+      <ConfirmModal
+        isOpen={!!confirmDeleteId}
+        title="Delete Stage"
+        message="Are you sure you want to delete this task stage? This action cannot be undone."
+        confirmText="Delete"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </div>
   );
 }

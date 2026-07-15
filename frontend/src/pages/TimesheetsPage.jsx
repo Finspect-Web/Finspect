@@ -5,6 +5,7 @@ import { getClients } from "../api/clientApi";
 import { getTasks } from "../api/taskApi";
 import { createTimesheetEntry, deleteTimesheetEntry, getTimesheetEntries, updateTimesheetEntry } from "../api/timesheetApi";
 import { getUsers } from "../api/userApi";
+import ConfirmModal from "../components/ConfirmModal";
 import { useAuth } from "../hooks/useAuth";
 import { formatDate } from "../utils/date";
 
@@ -114,13 +115,19 @@ export default function TimesheetsPage() {
     });
   };
 
-  const onDelete = async (id) => {
-    if (!window.confirm("Delete this timesheet entry?")) return;
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+
+  const onDelete = (id) => setConfirmDeleteId(id);
+
+  const handleConfirmDelete = async () => {
+    if (!confirmDeleteId) return;
     try {
-      await deleteTimesheetEntry(id);
+      await deleteTimesheetEntry(confirmDeleteId);
+      setConfirmDeleteId(null);
       await loadData();
     } catch (deleteError) {
       setError(deleteError.message);
+      setConfirmDeleteId(null);
     }
   };
 
@@ -311,6 +318,15 @@ export default function TimesheetsPage() {
           </table>
         </div>
       </section>
+
+      <ConfirmModal
+        isOpen={!!confirmDeleteId}
+        title="Delete Timesheet Entry"
+        message="Are you sure you want to delete this timesheet entry? This action cannot be undone."
+        confirmText="Delete"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </PageTransition>
   );
 }

@@ -4,6 +4,7 @@ import PageTransition from "../components/PageTransition";
 import { getClients } from "../api/clientApi";
 import { createTask, deleteTask, getTasks, updateTask } from "../api/taskApi";
 import { getUsers } from "../api/userApi";
+import ConfirmModal from "../components/ConfirmModal";
 import PriorityBadge from "../components/ui/PriorityBadge";
 import StatusBadge from "../components/ui/StatusBadge";
 import { useAuth } from "../hooks/useAuth";
@@ -94,13 +95,19 @@ export default function TasksPage() {
     }
   };
 
-  const removeTask = async (taskId) => {
-    if (!window.confirm("Delete this task?")) return;
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+
+  const removeTask = (taskId) => setConfirmDeleteId(taskId);
+
+  const handleConfirmDelete = async () => {
+    if (!confirmDeleteId) return;
     try {
-      await deleteTask(taskId);
+      await deleteTask(confirmDeleteId);
+      setConfirmDeleteId(null);
       await loadData();
     } catch (deleteError) {
       setError(deleteError.message);
+      setConfirmDeleteId(null);
     }
   };
 
@@ -256,6 +263,15 @@ export default function TasksPage() {
         ))}
         {filteredTasks.length === 0 && !loading ? <p className="text-sm text-slate-500">No tasks found.</p> : null}
       </section>
+
+      <ConfirmModal
+        isOpen={!!confirmDeleteId}
+        title="Delete Task"
+        message="Are you sure you want to delete this task? This action cannot be undone."
+        confirmText="Delete"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </PageTransition>
   );
 }

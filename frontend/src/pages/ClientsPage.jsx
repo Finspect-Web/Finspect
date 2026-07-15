@@ -5,6 +5,7 @@ import PageTransition from "../components/PageTransition";
 import { Link } from "react-router-dom";
 import { createClient, deleteClient, getClients, updateClient } from "../api/clientApi";
 import { getUsers } from "../api/userApi";
+import ConfirmModal from "../components/ConfirmModal";
 import { useAuth } from "../hooks/useAuth";
 import { formatFieldLabel } from "../utils/text";
 
@@ -119,13 +120,19 @@ export default function ClientsPage() {
     }
   };
 
-  const onDelete = async (id) => {
-    if (!window.confirm("Delete this client?")) return;
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+
+  const onDelete = (id) => setConfirmDeleteId(id);
+
+  const handleConfirmDelete = async () => {
+    if (!confirmDeleteId) return;
     try {
-      await deleteClient(id);
+      await deleteClient(confirmDeleteId);
+      setConfirmDeleteId(null);
       await loadClients();
     } catch (deleteError) {
       setError(deleteError.message);
+      setConfirmDeleteId(null);
     }
   };
 
@@ -283,6 +290,15 @@ export default function ClientsPage() {
         </div>,
         document.body
       ) : null}
+
+      <ConfirmModal
+        isOpen={!!confirmDeleteId}
+        title="Delete Client"
+        message="Are you sure you want to delete this client? All associated data will be removed. This action cannot be undone."
+        confirmText="Delete"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </PageTransition>
   );
 }
