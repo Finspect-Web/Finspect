@@ -312,9 +312,7 @@ export default function ClientDetailPage() {
   const submitDocument = async (event) => {
     event.preventDefault();
 
-    const resolvedCategory =
-      documentForm.category === "OTHER" ? documentForm.customCategory.trim() : documentForm.category;
-    if (documentForm.category === "OTHER" && !resolvedCategory) {
+    if (documentForm.category === "OTHER" && !documentForm.customCategory.trim()) {
       setDocumentError("Please enter a document type.");
       return;
     }
@@ -327,11 +325,19 @@ export default function ClientDetailPage() {
     try {
       setUploadingDocument(true);
       const fileUrl = await readFileAsDataUrl(documentFile);
+
+      // When using a custom category ("OTHER" + custom entry), send the valid enum
+      // value "OTHER" and store the custom category name inside the description.
+      const customCat = documentForm.customCategory.trim();
+      const description = customCat
+        ? `[${customCat}]${documentForm.description ? " — " + documentForm.description : ""}`
+        : documentForm.description || undefined;
+
       await createDocument({
         clientId: id,
         title: documentForm.title,
-        category: resolvedCategory,
-        description: documentForm.description || undefined,
+        category: documentForm.category,
+        description,
         fileUrl
       });
       closeDocumentModal();
@@ -545,9 +551,17 @@ export default function ClientDetailPage() {
                   <div>
                     <h3 className="font-semibold text-slate-900 dark:text-white">{document.title}</h3>
                     <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                      {document.category} • Uploaded {formatDate(document.createdAt)}
+                      {document.category === "OTHER" && document.description?.startsWith("[")
+                        ? document.description.match(/^\[([^\]]+)\]/)?.[1] || document.category
+                        : document.category} • Uploaded {formatDate(document.createdAt)}
                     </p>
-                    {document.description ? <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{document.description}</p> : null}
+                    {document.description ? (
+                      <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                        {document.description.startsWith("[")
+                          ? document.description.replace(/^\[[^\]]+\]\s*[—\s]*/, "")
+                          : document.description}
+                      </p>
+                    ) : null}
                   </div>
 
                   <div className="flex items-center gap-2">
