@@ -198,8 +198,61 @@ async function getDocumentsByClient(clientId, actor) {
   return clientDocuments.map((document) => toDocumentResponse(document));
 }
 
+async function deleteDocument(documentId, actorId, actor) {
+  if (isDummyMode()) {
+    const index = documents.findIndex((item) => item.id === documentId);
+
+    if (index === -1) {
+      throw new AppError("Document not found.", 404);
+    }
+
+    const document = documents[index];
+    const client = clients.find((item) => item.id === document.clientId);
+
+    if (!client) {
+      throw new AppError("Client not found.", 404);
+    }
+
+    if (!canAccessClient(client, actor)) {
+      throw new AppError("You do not have access to this client.", 403);
+    }
+
+    documents.splice(index, 1);
+    await logActivity(ActivityAction.DOCUMENT_DELETED, actorId, document.id);
+    return { id: document.id };
+  }
+
+  const document = await prisma.document.findUnique({
+    where: { id: documentId },
+    include: {
+      client: {
+        select: {
+          id: true,
+          assignedToId: true
+        }
+      }
+    }
+  });
+
+  if (!document) {
+    throw new AppError("Document not found.", 404);
+  }
+
+  if (!canAccessClient(document.client, actor)) {
+    throw new AppError("You do not have access to this client.", 403);
+  }
+
+  await prisma.document.delete({
+    where: { id: documentId }
+  });
+
+  await logActivity(ActivityAction.DOCUMENT_DELETED, actorId, document.id);
+  return { id: document.id };
+}
+
 module.exports = {
   createDocument,
   getDocumentById,
-  getDocumentsByClient
+  getDocumentsByClient,
+  deleteDocument
 };

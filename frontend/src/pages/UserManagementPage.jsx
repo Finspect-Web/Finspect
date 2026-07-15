@@ -460,7 +460,6 @@ export default function UserManagementPage() {
               <label className="block">
                 <span className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-300">Name</span>
                 <input
-                  required
                   value={form.name}
                   onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
                   className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-800"
@@ -470,7 +469,6 @@ export default function UserManagementPage() {
               <label className="block">
                 <span className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-300">Email</span>
                 <input
-                  required
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
@@ -481,7 +479,6 @@ export default function UserManagementPage() {
               <label className="block">
                 <span className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-300">Temporary Password</span>
                 <input
-                  required
                   value={form.password}
                   onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
                   className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-800"
@@ -609,7 +606,6 @@ export default function UserManagementPage() {
               <label className="block">
                 <span className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-300">Name</span>
                 <input
-                  required
                   value={editForm.name}
                   onChange={(e) => setEditForm((prev) => ({ ...prev, name: e.target.value }))}
                   className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-800"
@@ -618,7 +614,6 @@ export default function UserManagementPage() {
               <label className="block">
                 <span className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-300">Email</span>
                 <input
-                  required
                   type="email"
                   value={editForm.email}
                   onChange={(e) => setEditForm((prev) => ({ ...prev, email: e.target.value }))}
@@ -685,7 +680,6 @@ export default function UserManagementPage() {
               <label className="block">
                 <span className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-300">New Password</span>
                 <input
-                  required
                   type="text"
                   value={resetPasswordValue}
                   onChange={(e) => setResetPasswordValue(e.target.value)}

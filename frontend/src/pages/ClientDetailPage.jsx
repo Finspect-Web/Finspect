@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import PageTransition from "../components/PageTransition";
 import { createCredential, deleteCredential, getCredentialPassword, getCredentials, updateCredential } from "../api/credentialApi";
-import { createDocument, getDocuments } from "../api/documentApi";
+import { createDocument, deleteDocument, getDocuments } from "../api/documentApi";
 import { getClientById } from "../api/clientApi";
 import Modal from "../components/Modal";
 import { useAuth } from "../hooks/useAuth";
@@ -280,6 +280,19 @@ export default function ClientDetailPage() {
     }
   };
 
+  const removeDocument = async (documentId) => {
+    if (!window.confirm("Delete this document?")) return;
+
+    try {
+      await deleteDocument(documentId);
+      const data = await getDocuments(id);
+      setDocuments(data);
+      setDocumentError("");
+    } catch (deleteError) {
+      setDocumentError(deleteError.message);
+    }
+  };
+
   const submitDocument = async (event) => {
     event.preventDefault();
 
@@ -521,16 +534,26 @@ export default function ClientDetailPage() {
                     {document.description ? <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{document.description}</p> : null}
                   </div>
 
-                  <a
-                    href={document.fileUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    download
-                    className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-                  >
-                    <Download size={14} />
-                    View / Download
-                  </a>
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={document.fileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      download
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                    >
+                      <Download size={14} />
+                      View / Download
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => removeDocument(document.id)}
+                      className="inline-flex items-center gap-2 rounded-xl border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-800/40 dark:text-rose-400 dark:hover:bg-rose-950/30"
+                    >
+                      <Trash2 size={14} />
+                      Delete
+                    </button>
+                  </div>
                 </div>
                 <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">Uploaded by {document.uploadedBy?.name || "Unknown"}</p>
               </article>
@@ -573,20 +596,17 @@ export default function ClientDetailPage() {
 
             {credentialForm.type === "Other" ? (
               <label>
-                <span className="mb-1 block text-sm font-semibold text-slate-600 dark:text-slate-300">Password type</span>
-                <input
-                  required
-                  value={credentialForm.customType}
-                  onChange={(event) => setCredentialForm((prev) => ({ ...prev, customType: event.target.value }))}
-                  className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-800"
-                />
+                <span className="mb-1 block text-sm font-semibold text-slate-600 dark:text-slate-300">Password type</span>                  <input
+                    value={credentialForm.customType}
+                    onChange={(event) => setCredentialForm((prev) => ({ ...prev, customType: event.target.value }))}
+                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-800"
+                  />
               </label>
             ) : null}
 
             <label>
               <span className="mb-1 block text-sm font-semibold text-slate-600 dark:text-slate-300">Username</span>
               <input
-                required
                 value={credentialForm.username}
                 onChange={(event) => setCredentialForm((prev) => ({ ...prev, username: event.target.value }))}
                 className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-800"
@@ -598,7 +618,6 @@ export default function ClientDetailPage() {
                 Password {editingCredentialId ? "(leave blank to keep current)" : ""}
               </span>
               <input
-                required={!editingCredentialId}
                 type="password"
                 value={credentialForm.password}
                 onChange={(event) => setCredentialForm((prev) => ({ ...prev, password: event.target.value }))}
@@ -639,7 +658,6 @@ export default function ClientDetailPage() {
             <label>
               <span className="mb-1 block text-sm font-semibold text-slate-600 dark:text-slate-300">Title</span>
               <input
-                required
                 value={documentForm.title}
                 onChange={(event) => setDocumentForm((prev) => ({ ...prev, title: event.target.value }))}
                 className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-800"
@@ -671,7 +689,6 @@ export default function ClientDetailPage() {
               <label>
                 <span className="mb-1 block text-sm font-semibold text-slate-600 dark:text-slate-300">Document Type</span>
                 <input
-                  required
                   value={documentForm.customCategory}
                   onChange={(event) => setDocumentForm((prev) => ({ ...prev, customCategory: event.target.value }))}
                   className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-800"

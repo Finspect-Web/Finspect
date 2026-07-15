@@ -1,5 +1,5 @@
 const asyncHandler = require("../utils/asyncHandler");
-const { createDocument, getDocumentById, getDocumentsByClient } = require("../services/documents.service");
+const { createDocument, getDocumentById, getDocumentsByClient, deleteDocument } = require("../services/documents.service");
 
 const createDocumentController = asyncHandler(async (req, res) => {
   const data = await createDocument(req.body, req.user.id);
@@ -26,8 +26,18 @@ const getDocumentByIdController = asyncHandler(async (req, res) => {
   });
 });
 
+const deleteDocumentController = asyncHandler(async (req, res) => {
+  const data = await deleteDocument(req.params.id, req.user.id, req.user);
+  res.status(200).json({
+    success: true,
+    message: "Document deleted successfully.",
+    data
+  });
+});
+
 module.exports = {
   createDocumentController,
   getDocumentByIdController,
-  getDocumentsByClientController
+  getDocumentsByClientController,
+  deleteDocumentController
 };

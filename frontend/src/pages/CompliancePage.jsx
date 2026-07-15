@@ -203,7 +203,6 @@ export default function CompliancePage() {
               <span className="mb-1 block text-sm font-semibold text-slate-600">Client</span>
               <select
                 className="w-full"
-                required
                 value={form.clientId}
                 onChange={(event) => setForm((prev) => ({ ...prev, clientId: event.target.value }))}
               >
@@ -220,7 +219,6 @@ export default function CompliancePage() {
               <span className="mb-1 block text-sm font-semibold text-slate-600">Assigned To</span>
               <select
                 className="w-full"
-                required
                 value={form.assignedToId}
                 onChange={(event) => setForm((prev) => ({ ...prev, assignedToId: event.target.value }))}
               >
@@ -237,7 +235,6 @@ export default function CompliancePage() {
               <span className="mb-1 block text-sm font-semibold text-slate-600">Title</span>
               <input
                 className="w-full"
-                required
                 value={form.title}
                 onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
               />
@@ -247,7 +244,6 @@ export default function CompliancePage() {
               <span className="mb-1 block text-sm font-semibold text-slate-600">Due Date</span>
               <input
                 className="w-full"
-                required
                 type="date"
                 value={form.dueDate}
                 onChange={(event) => setForm((prev) => ({ ...prev, dueDate: event.target.value }))}

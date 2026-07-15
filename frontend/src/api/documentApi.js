@@ -14,3 +14,8 @@ export async function createDocument(payload) {
   const response = await api.post("/api/documents", payload);
   return response.data.data;
 }
+
+export async function deleteDocument(id) {
+  const response = await api.delete(`/api/documents/${id}`);
+  return response.data;
+}

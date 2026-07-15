@@ -137,7 +137,6 @@ export default function AttendancePage() {
             <label>
               <span className="mb-1 block text-sm font-semibold text-slate-600">User</span>
               <select
-                required
                 value={markForm.userId}
                 onChange={(event) => setMarkForm((prev) => ({ ...prev, userId: event.target.value }))}
               >
@@ -152,7 +151,6 @@ export default function AttendancePage() {
             <label>
               <span className="mb-1 block text-sm font-semibold text-slate-600">Date</span>
               <input
-                required
                 type="date"
                 value={markForm.date}
                 onChange={(event) => setMarkForm((prev) => ({ ...prev, date: event.target.value }))}

@@ -142,7 +142,6 @@ export default function TasksPage() {
             <label>
               <span className="mb-1 block text-sm font-semibold text-slate-600">Title</span>
               <input
-                required
                 value={form.title}
                 onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
                 className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-800"
@@ -151,7 +150,6 @@ export default function TasksPage() {
             <label>
               <span className="mb-1 block text-sm font-semibold text-slate-600">Due Date</span>
               <input
-                required
                 type="datetime-local"
                 value={form.dueDate}
                 onChange={(event) => setForm((prev) => ({ ...prev, dueDate: event.target.value }))}
@@ -169,7 +167,6 @@ export default function TasksPage() {
             <label>
               <span className="mb-1 block text-sm font-semibold text-slate-600">Client</span>
               <select
-                required
                 value={form.clientId}
                 onChange={(event) => setForm((prev) => ({ ...prev, clientId: event.target.value }))}
                 className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-800"
@@ -185,7 +182,6 @@ export default function TasksPage() {
             <label>
               <span className="mb-1 block text-sm font-semibold text-slate-600">Assign To</span>
               <select
-                required
                 value={form.assignedToId}
                 onChange={(event) => setForm((prev) => ({ ...prev, assignedToId: event.target.value }))}
                 className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-800"

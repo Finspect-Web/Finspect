@@ -168,7 +168,6 @@ export default function LoginPage() {
             <label className="block">
               <span className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Email</span>
               <input
-                required
                 type="email"
                 placeholder="you@example.com"
                 className="w-full px-4 py-2.5"
@@ -181,7 +180,6 @@ export default function LoginPage() {
               <span className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Password</span>
               <div className="relative">
                 <input
-                  required
                   type={showPassword ? "text" : "password"}
                   placeholder="&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;"
                   className="w-full px-4 py-2.5 pr-12"

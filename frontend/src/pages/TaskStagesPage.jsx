@@ -92,7 +92,6 @@ export default function TaskStagesPage() {
           <label className="md:col-span-2">
             <span className="mb-1 block text-sm font-semibold text-slate-600">Name</span>
             <input
-              required
               value={form.name}
               onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
             />
@@ -100,7 +99,6 @@ export default function TaskStagesPage() {
           <label>
             <span className="mb-1 block text-sm font-semibold text-slate-600">Order</span>
             <input
-              required
               type="number"
               min="1"
               value={form.order}
@@ -110,7 +108,6 @@ export default function TaskStagesPage() {
           <label>
             <span className="mb-1 block text-sm font-semibold text-slate-600">Color</span>
             <input
-              required
               type="color"
               value={form.color}
               onChange={(event) => setForm((prev) => ({ ...prev, color: event.target.value }))}

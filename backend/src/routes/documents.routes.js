@@ -2,7 +2,8 @@ const express = require("express");
 const {
   createDocumentController,
   getDocumentByIdController,
-  getDocumentsByClientController
+  getDocumentsByClientController,
+  deleteDocumentController
 } = require("../controllers/documents.controller");
 const { authenticate } = require("../middleware/auth.middleware");
 const { checkClientAccess } = require("../middleware/role.middleware");
@@ -14,5 +15,6 @@ router.use(authenticate);
 router.post("/", checkClientAccess, createDocumentController);
 router.get("/client/:clientId", checkClientAccess, getDocumentsByClientController);
 router.get("/:id", getDocumentByIdController);
+router.delete("/:id", deleteDocumentController);
 
 module.exports = router;

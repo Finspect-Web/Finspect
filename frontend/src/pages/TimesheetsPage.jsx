@@ -152,7 +152,6 @@ export default function TimesheetsPage() {
             <label>
               <span className="mb-1 block text-sm font-semibold text-slate-600">User</span>
               <select
-                required
                 value={form.userId}
                 onChange={(event) => setForm((prev) => ({ ...prev, userId: event.target.value }))}
               >
@@ -168,7 +167,6 @@ export default function TimesheetsPage() {
           <label>
             <span className="mb-1 block text-sm font-semibold text-slate-600">Work Date</span>
             <input
-              required
               type="date"
               value={form.workDate}
               onChange={(event) => setForm((prev) => ({ ...prev, workDate: event.target.value }))}
@@ -177,7 +175,6 @@ export default function TimesheetsPage() {
           <label>
             <span className="mb-1 block text-sm font-semibold text-slate-600">Duration (Minutes)</span>
             <input
-              required
               type="number"
               min="1"
               value={form.durationMinutes}
@@ -223,7 +220,6 @@ export default function TimesheetsPage() {
           <label className="md:col-span-3">
             <span className="mb-1 block text-sm font-semibold text-slate-600">Description</span>
             <input
-              required
               value={form.description}
               onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
             />

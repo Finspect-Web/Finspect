@@ -260,7 +260,6 @@ export default function BillingPage() {
               <label>
                 <span className="mb-1 block text-sm font-semibold text-slate-600">Client</span>
                 <select
-                  required
                   value={invoiceForm.clientId}
                   onChange={(event) => setInvoiceForm((prev) => ({ ...prev, clientId: event.target.value }))}
                   className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-800"
@@ -276,7 +275,6 @@ export default function BillingPage() {
               <label>
                 <span className="mb-1 block text-sm font-semibold text-slate-600">Invoice Number</span>
                 <input
-                  required
                   value={invoiceForm.invoiceNumber}
                   onChange={(event) => setInvoiceForm((prev) => ({ ...prev, invoiceNumber: event.target.value }))}
                   className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-800"
@@ -285,7 +283,6 @@ export default function BillingPage() {
               <label>
                 <span className="mb-1 block text-sm font-semibold text-slate-600">Issue Date</span>
                 <input
-                  required
                   type="date"
                   value={invoiceForm.issueDate}
                   onChange={(event) => setInvoiceForm((prev) => ({ ...prev, issueDate: event.target.value }))}
@@ -295,7 +292,6 @@ export default function BillingPage() {
               <label>
                 <span className="mb-1 block text-sm font-semibold text-slate-600">Due Date</span>
                 <input
-                  required
                   type="date"
                   value={invoiceForm.dueDate}
                   onChange={(event) => setInvoiceForm((prev) => ({ ...prev, dueDate: event.target.value }))}
@@ -305,7 +301,6 @@ export default function BillingPage() {
               <label>
                 <span className="mb-1 block text-sm font-semibold text-slate-600">Subtotal</span>
                 <input
-                  required
                   type="number"
                   min="0"
                   value={invoiceForm.subtotal}
@@ -376,7 +371,6 @@ export default function BillingPage() {
               <label>
                 <span className="mb-1 block text-sm font-semibold text-slate-600">Amount</span>
                 <input
-                  required
                   type="number"
                   min="0"
                   step="0.01"
@@ -388,7 +382,6 @@ export default function BillingPage() {
               <label>
                 <span className="mb-1 block text-sm font-semibold text-slate-600">Payment Date</span>
                 <input
-                  required
                   type="date"
                   value={paymentForm.paymentDate}
                   onChange={(event) => setPaymentForm((prev) => ({ ...prev, paymentDate: event.target.value }))}

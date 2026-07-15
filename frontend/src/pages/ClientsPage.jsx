@@ -258,7 +258,7 @@ export default function ClientsPage() {
                   <label key={key} className={key === "address" || key === "notes" ? "sm:col-span-2" : ""}>
                     <span className="mb-1 block text-sm font-semibold text-slate-600">{formatFieldLabel(key)}</span>
                     <input
-                      required={["name", "email", "phone", "companyName", "address"].includes(key)}
+
                       value={value}
                       onChange={(event) => setForm((prev) => ({ ...prev, [key]: event.target.value }))}
                       className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-800"
