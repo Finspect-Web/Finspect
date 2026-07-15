@@ -174,19 +174,19 @@ async function createTask(payload, actorId) {
   ]);
   await sendTaskAssignmentNotifications(task);
 
-  // Sync to Google Calendar if admin has it connected
+  // Sync to Google Calendar — create event on the assigned user's calendar
   try {
-    const [admin, assignedUserRecord] = await Promise.all([
-      prisma.user.findUnique({ where: { id: actorId }, select: { googleCalendarConnected: true, email: true, name: true } }),
-      prisma.user.findUnique({ where: { id: assignedToId }, select: { email: true, name: true } }),
+    const [assignedUserRecord, adminRecord] = await Promise.all([
+      prisma.user.findUnique({ where: { id: assignedToId }, select: { googleCalendarConnected: true, email: true, name: true } }),
+      prisma.user.findUnique({ where: { id: actorId }, select: { email: true, name: true } }),
     ]);
-    if (admin?.googleCalendarConnected) {
+    if (assignedUserRecord?.googleCalendarConnected) {
       const attendees = [
         { email: assignedUserRecord.email, name: assignedUserRecord.name },
-        { email: admin.email, name: admin.name },
+        ...(adminRecord?.email ? [{ email: adminRecord.email, name: adminRecord.name }] : []),
       ];
       const googleEventId = await googleCalendar.syncEventToGoogle(
-        actorId,
+        assignedToId,
         "TASK",
         task.id,
         {
@@ -490,26 +490,112 @@ async function updateTask(id, payload, actor) {
     await sendTaskAssignmentNotifications(updatedTask);
   }
 
-  // Sync changes to Google Calendar
-  if (existing.googleEventId && (data.dueDate || data.title || data.description || data.priority || data.assignedToId)) {
-    try {
-      await googleCalendar.syncEventUpdate(
-        actor.id,
-        "TASK",
-        id,
-        {
-          title: `[Task] ${updatedTask.title}`,
-          description: `Client: ${updatedTask.client.companyName}\nAssigned to: ${updatedTask.assignedTo.name}\nPriority: ${updatedTask.priority}\n\n${updatedTask.description || ""}`,
-          startAt: updatedTask.dueDate,
-          endAt: updatedTask.dueDate,
-          attendees: [
-            { email: updatedTask.assignedTo.email, name: updatedTask.assignedTo.name },
-          ],
-          addMeetLink: false,
+  // Sync changes to Google Calendar — update on the assigned user's calendar
+  const calendarEvent = await prisma.calendarEvent.findFirst({
+    where: { sourceType: "TASK", sourceId: id },
+    select: { id: true, userId: true, googleEventId: true },
+  });
+
+  const shouldSyncEvent = data.dueDate || data.title || data.description || data.priority || data.assignedToId;
+  const assignedToChanged = data.assignedToId && data.assignedToId !== existing.assignedToId;
+
+  if (calendarEvent && shouldSyncEvent) {
+    if (assignedToChanged) {
+      // Re-assigned — delete event from old assignee's calendar
+      try {
+        await googleCalendar.syncEventDelete(calendarEvent.userId, "TASK", id);
+      } catch (gcError) {
+        console.error("Failed to delete old task event from Google Calendar:", gcError.message);
+      }
+
+      // Create event in new assignee's calendar if they have Google connected
+      try {
+        const newAssignee = await prisma.user.findUnique({
+          where: { id: data.assignedToId },
+          select: { googleCalendarConnected: true, email: true, name: true },
+        });
+        if (newAssignee?.googleCalendarConnected) {
+          const newGoogleEventId = await googleCalendar.syncEventToGoogle(
+            data.assignedToId,
+            "TASK",
+            id,
+            {
+              title: `[Task] ${updatedTask.title}`,
+              description: `Client: ${updatedTask.client.companyName}\nAssigned to: ${newAssignee.name}\nPriority: ${updatedTask.priority}\n\n${updatedTask.description || ""}`,
+              startAt: updatedTask.dueDate,
+              endAt: updatedTask.dueDate,
+              attendees: [
+                { email: newAssignee.email, name: newAssignee.name },
+              ],
+              addMeetLink: false,
+            }
+          );
+          await prisma.task.update({
+            where: { id },
+            data: { googleEventId: newGoogleEventId },
+          });
+        } else {
+          // New assignee doesn't have Google Calendar — clear the event reference
+          await prisma.task.update({
+            where: { id },
+            data: { googleEventId: null },
+          });
         }
-      );
+      } catch (gcError) {
+        console.error("Failed to create task event in new assignee's Google Calendar:", gcError.message);
+      }
+    } else if (data.dueDate || data.title || data.description || data.priority) {
+      // Same assignee — update existing event on their calendar
+      try {
+        await googleCalendar.syncEventUpdate(
+          calendarEvent.userId,
+          "TASK",
+          id,
+          {
+            title: `[Task] ${updatedTask.title}`,
+            description: `Client: ${updatedTask.client.companyName}\nAssigned to: ${updatedTask.assignedTo.name}\nPriority: ${updatedTask.priority}\n\n${updatedTask.description || ""}`,
+            startAt: updatedTask.dueDate,
+            endAt: updatedTask.dueDate,
+            attendees: [
+              { email: updatedTask.assignedTo.email, name: updatedTask.assignedTo.name },
+            ],
+            addMeetLink: false,
+          }
+        );
+      } catch (gcError) {
+        console.error("Failed to sync task update to Google Calendar:", gcError.message);
+      }
+    }
+  } else if (!calendarEvent && assignedToChanged && data.assignedToId) {
+    // No existing CalendarEvent but re-assigned — try creating one for the new assignee
+    try {
+      const newAssignee = await prisma.user.findUnique({
+        where: { id: data.assignedToId },
+        select: { googleCalendarConnected: true, email: true, name: true },
+      });
+      if (newAssignee?.googleCalendarConnected) {
+        const newGoogleEventId = await googleCalendar.syncEventToGoogle(
+          data.assignedToId,
+          "TASK",
+          id,
+          {
+            title: `[Task] ${updatedTask.title}`,
+            description: `Client: ${updatedTask.client.companyName}\nAssigned to: ${newAssignee.name}\nPriority: ${updatedTask.priority}\n\n${updatedTask.description || ""}`,
+            startAt: updatedTask.dueDate,
+            endAt: updatedTask.dueDate,
+            attendees: [
+              { email: newAssignee.email, name: newAssignee.name },
+            ],
+            addMeetLink: false,
+          }
+        );
+        await prisma.task.update({
+          where: { id },
+          data: { googleEventId: newGoogleEventId },
+        });
+      }
     } catch (gcError) {
-      console.error("Failed to sync task update to Google Calendar:", gcError.message);
+      console.error("Failed to create task event in new assignee's Google Calendar:", gcError.message);
     }
   }
 
@@ -530,10 +616,14 @@ async function deleteTask(id, actorId) {
     throw new AppError("Task not found.", 404);
   }
 
-  // Delete from Google Calendar if synced
-  if (existing.googleEventId) {
+  // Delete from Google Calendar — find the event owner from CalendarEvent table
+  const calendarEvent = await prisma.calendarEvent.findFirst({
+    where: { sourceType: "TASK", sourceId: id },
+    select: { userId: true },
+  });
+  if (calendarEvent) {
     try {
-      await googleCalendar.syncEventDelete(actorId, "TASK", id);
+      await googleCalendar.syncEventDelete(calendarEvent.userId, "TASK", id);
     } catch (gcError) {
       console.error("Failed to delete task from Google Calendar:", gcError.message);
     }
