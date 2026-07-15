@@ -39,7 +39,6 @@ function readFileAsDataUrl(file) {
 
 export default function ClientDetailPage() {
   const { user } = useAuth();
-  const isAdmin = user?.role === "ADMIN";
   const { id } = useParams();
   const location = useLocation();
   const [client, setClient] = useState(null);
@@ -431,15 +430,13 @@ export default function ClientDetailPage() {
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white">Passwords</h2>
                 <p className="text-sm text-slate-500 dark:text-slate-400">Stored passwords stay in a compact list.</p>
               </div>
-              {isAdmin ? (
-                <button
-                  type="button"
-                  onClick={openPasswordModal}
-                  className="inline-flex items-center gap-2 rounded-full bg-brand-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-700"
-                >
-                  + Add
-                </button>
-              ) : null}
+              <button
+                type="button"
+                onClick={openPasswordModal}
+                className="inline-flex items-center gap-2 rounded-full bg-brand-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-700"
+              >
+                + Add
+              </button>
             </div>
 
           <section className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft dark:border-slate-700 dark:bg-slate-900">
@@ -449,7 +446,7 @@ export default function ClientDetailPage() {
                   <th className="px-4 py-3">Type</th>
                   <th className="px-4 py-3">Username</th>
                   <th className="px-4 py-3">Password</th>
-                  {isAdmin ? <th className="px-4 py-3">Action</th> : null}
+                  <th className="px-4 py-3">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -485,31 +482,29 @@ export default function ClientDetailPage() {
                         </button>
                       </div>
                     </td>
-                    {isAdmin ? (
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => editCredential(credential)}
-                            className="rounded-lg border border-slate-300 p-1.5 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-                          >
-                            <Pencil size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => removeCredential(credential.id)}
-                            className="rounded-lg border border-rose-200 p-1.5 text-rose-600 hover:bg-rose-50"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    ) : null}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => editCredential(credential)}
+                          className="rounded-lg border border-slate-300 p-1.5 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeCredential(credential.id)}
+                          className="rounded-lg border border-rose-200 p-1.5 text-rose-600 hover:bg-rose-50"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
                 {credentials.length === 0 ? (
                   <tr>
-                    <td colSpan={isAdmin ? 4 : 3} className="px-4 py-6 text-center text-slate-500">
+                    <td colSpan={4} className="px-4 py-6 text-center text-slate-500">
                       No passwords found for this client.
                     </td>
                   </tr>
